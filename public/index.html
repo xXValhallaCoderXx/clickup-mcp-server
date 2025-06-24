@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClickUp Ticket Creator</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-ticket-alt"></i> ClickUp Ticket Creator</h1>
+                <p>Transform natural language into structured tickets with AI</p>
+            </div>
+            <div class="status-indicator">
+                <span id="status-dot" class="status-dot"></span>
+                <span id="status-text">Checking connection...</span>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="form-section">
+                <form id="ticket-form">
+                    <div class="form-group">
+                        <label for="description">
+                            <i class="fas fa-edit"></i> Issue Description
+                        </label>
+                        <textarea 
+                            id="description" 
+                            name="description" 
+                            placeholder="Describe your issue in detail. For example:&#10;&#10;- What is the problem?&#10;- What were you trying to do?&#10;- What did you expect to happen?&#10;- What actually happened?&#10;- Any error messages?&#10;- Steps to reproduce?"
+                            rows="8"
+                            required
+                        ></textarea>
+                        <div class="char-counter">
+                            <span id="char-count">0</span> characters
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="priority">
+                                <i class="fas fa-exclamation-triangle"></i> Priority
+                            </label>
+                            <select id="priority" name="priority">
+                                <option value="low">Low</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="high">High</option>
+                                <option value="urgent">Urgent</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="assignee">
+                                <i class="fas fa-user"></i> Assignee (Optional)
+                            </label>
+                            <input 
+                                type="text" 
+                                id="assignee" 
+                                name="assignee" 
+                                placeholder="Enter user ID or email"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" id="create-btn" class="btn btn-primary">
+                            <i class="fas fa-plus"></i>
+                            <span>Create Ticket</span>
+                            <div class="spinner" id="spinner"></div>
+                        </button>
+                        <button type="button" id="clear-btn" class="btn btn-secondary">
+                            <i class="fas fa-eraser"></i> Clear
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="preview-section" id="preview-section" style="display: none;">
+                <h3><i class="fas fa-eye"></i> Ticket Preview</h3>
+                <div class="preview-content" id="preview-content">
+                    <!-- Preview will be populated here -->
+                </div>
+            </div>
+
+            <div class="result-section" id="result-section" style="display: none;">
+                <div class="result-content" id="result-content">
+                    <!-- Results will be populated here -->
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <p>
+                    <i class="fas fa-info-circle"></i>
+                    This tool uses AI to process your description and create structured ClickUp tickets.
+                </p>
+                <div class="footer-links">
+                    <button id="test-connection" class="link-btn">
+                        <i class="fas fa-plug"></i> Test Connection
+                    </button>
+                    <button id="show-help" class="link-btn">
+                        <i class="fas fa-question-circle"></i> Help
+                    </button>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-question-circle"></i> How to Use</h2>
+                <button class="close-btn" id="close-help">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h3>Getting Started</h3>
+                <ol>
+                    <li>Describe your issue in the text area</li>
+                    <li>Select the appropriate priority level</li>
+                    <li>Optionally assign the ticket to someone</li>
+                    <li>Click "Create Ticket" to generate the ticket</li>
+                </ol>
+
+                <h3>Writing Good Descriptions</h3>
+                <ul>
+                    <li><strong>Be specific:</strong> Include what you were doing when the issue occurred</li>
+                    <li><strong>Include steps:</strong> List the steps to reproduce the problem</li>
+                    <li><strong>Expected vs Actual:</strong> Describe what you expected vs what happened</li>
+                    <li><strong>Environment:</strong> Mention browser, OS, or relevant system info</li>
+                    <li><strong>Error messages:</strong> Include any error messages you saw</li>
+                </ul>
+
+                <h3>Examples</h3>
+                <div class="example">
+                    <strong>Bug Report:</strong><br>
+                    "When I click the 'Save' button on the user profile page, I get a 500 error. Expected: Profile should save successfully. Browser: Chrome 120, Windows 11."
+                </div>
+                
+                <div class="example">
+                    <strong>Feature Request:</strong><br>
+                    "Add a dark mode toggle to the navigation bar. Users should be able to switch between light and dark themes and have their preference saved."
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

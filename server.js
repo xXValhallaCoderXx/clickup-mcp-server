@@ -1,0 +1,174 @@
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const path = require('path');
+require('dotenv').config();
+
+const clickupService = require('./services/clickupService');
+const llmService = require('./services/llmService');
+const templateService = require('./services/templateService');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Routes
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// API Routes
+app.post('/api/create-ticket', async (req, res) => {
+    try {
+        const { description, priority = 'normal', assignee = null } = req.body;
+        
+        if (!description) {
+            return res.status(400).json({ error: 'Description is required' });
+        }
+
+        console.log('Processing ticket creation request:', { description, priority, assignee });
+
+        // Process description with LLM to extract structured data
+        const processedTicket = await llmService.processDescription(description);
+        
+        // Apply template to create ClickUp ticket structure
+        const ticketData = templateService.applyTemplate(processedTicket, { priority, assignee });
+        
+        // Create ticket in ClickUp
+        const createdTicket = await clickupService.createTask(ticketData);
+        
+        res.json({
+            success: true,
+            ticket: createdTicket,
+            processed: processedTicket
+        });
+        
+    } catch (error) {
+        console.error('Error creating ticket:', error);
+        res.status(500).json({ 
+            error: 'Failed to create ticket', 
+            details: error.message 
+        });
+    }
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Test ClickUp connection
+app.get('/api/test-clickup', async (req, res) => {
+    try {
+        const teams = await clickupService.getTeams();
+        res.json({ success: true, teams });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get ClickUp workspace structure
+app.get('/api/clickup/structure', async (req, res) => {
+    try {
+        const teams = await clickupService.getTeams();
+        const structure = [];
+        
+        for (const team of teams.slice(0, 3)) { // Limit to first 3 teams
+            try {
+                const spaces = await clickupService.getSpaces(team.id);
+                const teamData = {
+                    id: team.id,
+                    name: team.name,
+                    spaces: []
+                };
+                
+                for (const space of spaces.slice(0, 5)) { // Limit to first 5 spaces
+                    try {
+                        const folders = await clickupService.getFolders(space.id);
+                        const spaceData = {
+                            id: space.id,
+                            name: space.name,
+                            folders: []
+                        };
+                        
+                        for (const folder of folders.slice(0, 5)) { // Limit to first 5 folders
+                            try {
+                                const lists = await clickupService.getLists(folder.id);
+                                spaceData.folders.push({
+                                    id: folder.id,
+                                    name: folder.name,
+                                    lists: lists.slice(0, 10).map(list => ({
+                                        id: list.id,
+                                        name: list.name
+                                    }))
+                                });
+                            } catch (error) {
+                                console.warn(`Failed to get lists for folder ${folder.id}:`, error.message);
+                            }
+                        }
+                        
+                        teamData.spaces.push(spaceData);
+                    } catch (error) {
+                        console.warn(`Failed to get folders for space ${space.id}:`, error.message);
+                    }
+                }
+                
+                structure.push(teamData);
+            } catch (error) {
+                console.warn(`Failed to get spaces for team ${team.id}:`, error.message);
+            }
+        }
+        
+        res.json({ success: true, structure });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Test LLM connection
+app.get('/api/test-llm', async (req, res) => {
+    try {
+        const result = await llmService.testConnection();
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get available templates
+app.get('/api/templates', (req, res) => {
+    const templates = {
+        bug: {
+            name: 'Bug Report',
+            description: 'For reporting software bugs and issues',
+            example: 'When I click the save button, I get a 500 error...'
+        },
+        feature: {
+            name: 'Feature Request',
+            description: 'For requesting new features or enhancements',
+            example: 'Add a dark mode toggle to the navigation bar...'
+        },
+        task: {
+            name: 'Task',
+            description: 'For general tasks and work items',
+            example: 'Update the user documentation for the new API...'
+        },
+        improvement: {
+            name: 'Improvement',
+            description: 'For optimizations and improvements',
+            example: 'Optimize the database queries for better performance...'
+        }
+    };
+    
+    res.json({ success: true, templates });
+});
+
+app.listen(PORT, () => {
+    console.log(`🚀 ClickUp MCP Server running on http://localhost:${PORT}`);
+    console.log(`📝 Open the web interface to start creating tickets`);
+});
