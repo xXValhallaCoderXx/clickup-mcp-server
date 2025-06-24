@@ -7,6 +7,7 @@ require('dotenv').config();
 const clickupService = require('./services/clickupService');
 const llmService = require('./services/llmService');
 const templateService = require('./services/templateService');
+const contextService = require('./services/contextService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -234,6 +235,45 @@ app.post('/api/verify-list', async (req, res) => {
                 permission_level: listData.permission_level
             }
         });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Context management endpoints
+app.get('/api/context', (req, res) => {
+    try {
+        const context = contextService.getCompanyContext();
+        const stats = contextService.getContextStats();
+        res.json({ 
+            success: true, 
+            context,
+            stats
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/context', (req, res) => {
+    try {
+        const { context } = req.body;
+        
+        if (!context) {
+            return res.status(400).json({ error: 'Context content is required' });
+        }
+        
+        const result = contextService.saveCompanyContext(context);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/context/stats', (req, res) => {
+    try {
+        const stats = contextService.getContextStats();
+        res.json({ success: true, stats });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

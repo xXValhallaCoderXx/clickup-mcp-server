@@ -1,4 +1,5 @@
 const axios = require('axios');
+const contextService = require('./contextService');
 
 class LLMService {
     constructor() {
@@ -62,56 +63,103 @@ class LLMService {
     }
 
     buildPrompt(description) {
+        const contextPrompt = contextService.buildContextPrompt();
+        
         return `
-Please analyze the following issue description and extract structured information to create a ticket. 
-Return ONLY a JSON object with the following structure:
+You are an expert engineering project manager. Analyze the following user description and create a well-structured engineering ticket.
+
+${contextPrompt}
+
+INSTRUCTIONS:
+1. Determine the ticket type (bug, feature, task, improvement, spike)
+2. Extract key information and structure it professionally
+3. Create proper acceptance criteria for engineering work
+4. Identify technical considerations and scope
+5. Suggest appropriate tags and priority
+
+Return ONLY a JSON object with this exact structure:
 
 {
-    "title": "Clear, concise title for the ticket",
-    "description": "Detailed description with any technical details, steps to reproduce, etc.",
-    "type": "bug|feature|task|improvement",
+    "title": "Clear, actionable title (max 80 chars)",
+    "type": "bug|feature|task|improvement|spike",
     "priority": "urgent|high|normal|low",
+    "summary": "Brief 1-2 sentence summary",
+    "description": "Detailed technical description",
+    "stepsToReproduce": ["step1", "step2"] or null,
+    "expectedBehavior": "What should happen" or null,
+    "actualBehavior": "What currently happens" or null,
+    "acceptanceCriteria": ["criteria1", "criteria2"],
+    "technicalNotes": "Technical considerations, dependencies, etc." or null,
+    "testingNotes": "How to test this work" or null,
     "tags": ["tag1", "tag2"],
+    "estimatedComplexity": "low|medium|high",
     "estimatedHours": number or null,
-    "acceptanceCriteria": ["criteria1", "criteria2"] or null
+    "dependencies": ["dependency1"] or null,
+    "affectedComponents": ["component1"] or null
 }
 
-Issue Description:
+TICKET TYPE GUIDELINES:
+- **bug**: Something is broken or not working as expected
+- **feature**: New functionality or enhancement
+- **task**: General work item, maintenance, or non-feature work
+- **improvement**: Optimization, refactoring, or enhancement of existing functionality
+- **spike**: Research, investigation, or proof of concept work
+
+PRIORITY GUIDELINES:
+- **urgent**: Critical production issue, security vulnerability
+- **high**: Important feature, significant bug affecting users
+- **normal**: Standard feature work, minor bugs
+- **low**: Nice-to-have, minor improvements
+
+USER DESCRIPTION:
 ${description}
 
-Remember to respond with ONLY the JSON object, no additional text.`;
+Analyze the description carefully and create a professional engineering ticket. Focus on making it actionable for developers.`;
     }
 
     createFallbackStructure(description) {
-        // Simple fallback when LLM is not available
+        // Enhanced fallback when LLM is not available
         const words = description.toLowerCase();
         
         let type = 'task';
-        if (words.includes('bug') || words.includes('error') || words.includes('issue') || words.includes('problem')) {
+        if (words.includes('bug') || words.includes('error') || words.includes('issue') || words.includes('problem') || words.includes('broken')) {
             type = 'bug';
-        } else if (words.includes('feature') || words.includes('add') || words.includes('new')) {
+        } else if (words.includes('feature') || words.includes('add') || words.includes('new') || words.includes('implement')) {
             type = 'feature';
-        } else if (words.includes('improve') || words.includes('enhance') || words.includes('optimize')) {
+        } else if (words.includes('improve') || words.includes('enhance') || words.includes('optimize') || words.includes('refactor')) {
             type = 'improvement';
+        } else if (words.includes('research') || words.includes('investigate') || words.includes('spike') || words.includes('explore')) {
+            type = 'spike';
         }
 
         let priority = 'normal';
-        if (words.includes('urgent') || words.includes('critical') || words.includes('asap')) {
+        if (words.includes('urgent') || words.includes('critical') || words.includes('asap') || words.includes('production')) {
             priority = 'urgent';
-        } else if (words.includes('high') || words.includes('important')) {
+        } else if (words.includes('high') || words.includes('important') || words.includes('blocking')) {
             priority = 'high';
-        } else if (words.includes('low') || words.includes('minor')) {
+        } else if (words.includes('low') || words.includes('minor') || words.includes('nice')) {
             priority = 'low';
         }
 
+        const title = description.split('\n')[0].substring(0, 80) || 'New Engineering Ticket';
+        
         return {
-            title: description.split('\n')[0].substring(0, 100) || 'New Ticket',
-            description: description,
+            title: title,
             type: type,
             priority: priority,
-            tags: [type],
+            summary: `${type.charAt(0).toUpperCase() + type.slice(1)} work item`,
+            description: description,
+            stepsToReproduce: type === 'bug' ? ['To be defined'] : null,
+            expectedBehavior: type === 'bug' ? 'To be defined' : null,
+            actualBehavior: type === 'bug' ? 'To be defined' : null,
+            acceptanceCriteria: ['Work is completed as described', 'Code is tested and reviewed'],
+            technicalNotes: null,
+            testingNotes: 'Manual testing required',
+            tags: [type, 'auto-generated'],
+            estimatedComplexity: 'medium',
             estimatedHours: null,
-            acceptanceCriteria: null
+            dependencies: null,
+            affectedComponents: null
         };
     }
 

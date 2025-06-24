@@ -536,3 +536,153 @@ body {
         padding: 20px;
     }
 }
+
+/* Context Management Modal */
+.context-modal-content {
+    max-width: 900px;
+    width: 95%;
+    max-height: 90vh;
+}
+
+.context-stats {
+    display: flex;
+    gap: 20px;
+    margin: 20px 0;
+    padding: 16px;
+    background: #1a1a1a;
+    border-radius: 8px;
+    border: 1px solid #2a2a2a;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #a1a1aa;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stat-value {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.context-editor {
+    margin: 20px 0;
+}
+
+.context-editor label {
+    display: block;
+    font-weight: 500;
+    color: #ffffff;
+    margin-bottom: 8px;
+    font-size: 0.875rem;
+    letter-spacing: -0.01em;
+}
+
+.context-editor label i {
+    color: #3b82f6;
+    margin-right: 8px;
+}
+
+#context-textarea {
+    width: 100%;
+    min-height: 400px;
+    padding: 16px;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    background: #1a1a1a;
+    color: #ffffff;
+    font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    resize: vertical;
+    transition: border-color 0.2s ease;
+}
+
+#context-textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.context-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.context-help {
+    margin-top: 24px;
+    padding: 16px;
+    background: #1a1a1a;
+    border-radius: 8px;
+    border: 1px solid #2a2a2a;
+}
+
+.context-help h4 {
+    color: #ffffff;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    letter-spacing: -0.01em;
+}
+
+.context-help ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.context-help li {
+    color: #d4d4d8;
+    font-size: 0.875rem;
+    margin-bottom: 8px;
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+}
+
+.context-help li:before {
+    content: "-";
+    color: #3b82f6;
+    position: absolute;
+    left: 0;
+}
+
+.context-help strong {
+    color: #ffffff;
+}
+
+@media (max-width: 768px) {
+    .context-modal-content {
+        width: 98%;
+        margin: 10px;
+    }
+    
+    .context-stats {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .stat-item {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+    
+    #context-textarea {
+        min-height: 300px;
+        font-size: 0.8rem;
+    }
+    
+    .context-actions {
+        flex-direction: column;
+    }
+}

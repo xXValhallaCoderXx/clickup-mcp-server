@@ -103,12 +103,74 @@
                     <button id="test-connection" class="link-btn">
                         <i class="fas fa-plug"></i> Test Connection
                     </button>
+                    <button id="manage-context" class="link-btn">
+                        <i class="fas fa-cog"></i> Manage Context
+                    </button>
                     <button id="show-help" class="link-btn">
                         <i class="fas fa-question-circle"></i> Help
                     </button>
                 </div>
             </div>
         </footer>
+    </div>
+
+    <!-- Context Management Modal -->
+    <div id="context-modal" class="modal">
+        <div class="modal-content context-modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-cog"></i> Company & Project Context</h2>
+                <button class="close-btn" id="close-context">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Provide context about your company, tech stack, and projects to generate more relevant tickets.</p>
+                
+                <div class="context-stats" id="context-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Sections:</span>
+                        <span class="stat-value" id="stat-sections">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Characters:</span>
+                        <span class="stat-value" id="stat-characters">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Last Updated:</span>
+                        <span class="stat-value" id="stat-updated">Never</span>
+                    </div>
+                </div>
+
+                <div class="context-editor">
+                    <label for="context-textarea">
+                        <i class="fas fa-edit"></i> Context (Markdown Format)
+                    </label>
+                    <textarea 
+                        id="context-textarea" 
+                        placeholder="Loading context..."
+                        rows="20"
+                    ></textarea>
+                    <div class="context-actions">
+                        <button id="save-context" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Context
+                        </button>
+                        <button id="reset-context" class="btn btn-secondary">
+                            <i class="fas fa-undo"></i> Reset to Default
+                        </button>
+                    </div>
+                </div>
+
+                <div class="context-help">
+                    <h4>Context Sections You Can Include:</h4>
+                    <ul>
+                        <li><strong>Company Information:</strong> Industry, team size, methodology</li>
+                        <li><strong>Tech Stack:</strong> Frontend, backend, database, tools</li>
+                        <li><strong>Current Projects:</strong> Active features, phases, priorities</li>
+                        <li><strong>Development Standards:</strong> Code quality, testing, deployment</li>
+                        <li><strong>Common Issues:</strong> Frequent bugs, technical debt</li>
+                        <li><strong>Team Structure:</strong> Roles, responsibilities, expertise</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Help Modal -->

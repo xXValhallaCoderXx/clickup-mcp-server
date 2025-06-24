@@ -27,6 +27,12 @@ class TicketCreator {
         // Test connection button
         document.getElementById('test-connection').addEventListener('click', () => this.testConnection());
         
+        // Context management
+        document.getElementById('manage-context').addEventListener('click', () => this.showContextModal());
+        document.getElementById('close-context').addEventListener('click', () => this.hideContextModal());
+        document.getElementById('save-context').addEventListener('click', () => this.saveContext());
+        document.getElementById('reset-context').addEventListener('click', () => this.resetContext());
+
         // Help modal
         document.getElementById('show-help').addEventListener('click', () => this.showHelp());
         document.getElementById('close-help').addEventListener('click', () => this.hideHelp());
@@ -35,6 +41,12 @@ class TicketCreator {
         document.getElementById('help-modal').addEventListener('click', (e) => {
             if (e.target.id === 'help-modal') {
                 this.hideHelp();
+            }
+        });
+        
+        document.getElementById('context-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'context-modal') {
+                this.hideContextModal();
             }
         });
         
@@ -109,14 +121,14 @@ class TicketCreator {
             
             if (response.ok && result.success) {
                 this.updateStatus('connected', 'ClickUp Connected');
-                this.showNotification('✅ ClickUp connection successful!', 'success');
+                this.showNotification('ClickUp connection successful!', 'success');
             } else {
                 this.updateStatus('error', 'ClickUp Error');
-                this.showNotification('❌ ClickUp connection failed: ' + result.error, 'error');
+                this.showNotification('ClickUp connection failed: ' + result.error, 'error');
             }
         } catch (error) {
             this.updateStatus('error', 'Connection Failed');
-            this.showNotification('❌ Connection test failed', 'error');
+            this.showNotification('Connection test failed', 'error');
         }
     }
 
@@ -142,40 +154,91 @@ class TicketCreator {
         
         const html = `
             <div class="success-message">
-                <h3><i class="fas fa-check-circle"></i> Ticket Created Successfully!</h3>
-                <p>Your ticket has been created in ClickUp.</p>
+                <h3><i class="fas fa-check-circle"></i> Engineering Ticket Created!</h3>
+                <p>Your structured ticket has been created in ClickUp with proper formatting.</p>
                 ${ticket.url ? `<a href="${ticket.url}" target="_blank" class="ticket-link">
-                    <i class="fas fa-external-link-alt"></i> View Ticket
+                    <i class="fas fa-external-link-alt"></i> View in ClickUp
                 </a>` : ''}
             </div>
             
             <div class="ticket-preview">
                 <h4>${processed.title || 'Untitled Ticket'}</h4>
+                
                 <div class="ticket-meta">
-                    <span class="meta-item">
-                        <i class="fas fa-tag"></i> ${processed.type || 'task'}
+                    <span class="meta-item type-${processed.type || 'task'}">
+                        <i class="fas fa-${this.getTypeIcon(processed.type)}"></i> ${(processed.type || 'task').toUpperCase()}
                     </span>
-                    <span class="meta-item">
-                        <i class="fas fa-exclamation-triangle"></i> ${processed.priority || 'normal'}
+                    <span class="meta-item priority-${processed.priority || 'normal'}">
+                        <i class="fas fa-flag"></i> ${(processed.priority || 'normal').toUpperCase()}
                     </span>
+                    ${processed.estimatedComplexity ? `<span class="meta-item">
+                        <i class="fas fa-layer-group"></i> ${processed.estimatedComplexity} complexity
+                    </span>` : ''}
                     ${processed.estimatedHours ? `<span class="meta-item">
                         <i class="fas fa-clock"></i> ${processed.estimatedHours}h
                     </span>` : ''}
                 </div>
-                <div class="ticket-description">${processed.description || ''}</div>
+
+                ${processed.summary ? `
+                    <div class="ticket-section">
+                        <h5>Summary</h5>
+                        <p>${processed.summary}</p>
+                    </div>
+                ` : ''}
+
                 ${processed.acceptanceCriteria && processed.acceptanceCriteria.length > 0 ? `
-                    <div style="margin-top: 15px;">
-                        <strong>Acceptance Criteria:</strong>
-                        <ul style="margin-left: 20px; margin-top: 5px;">
-                            ${processed.acceptanceCriteria.map(criteria => `<li>${criteria}</li>`).join('')}
+                    <div class="ticket-section">
+                        <h5>Acceptance Criteria</h5>
+                        <ul class="criteria-list">
+                            ${processed.acceptanceCriteria.map(criteria => `<li><i class="far fa-square"></i> ${criteria}</li>`).join('')}
                         </ul>
                     </div>
                 ` : ''}
+
+                ${processed.technicalNotes ? `
+                    <div class="ticket-section">
+                        <h5>Technical Notes</h5>
+                        <p>${processed.technicalNotes}</p>
+                    </div>
+                ` : ''}
+
+                ${processed.dependencies && processed.dependencies.length > 0 ? `
+                    <div class="ticket-section">
+                        <h5>Dependencies</h5>
+                        <ul class="simple-list">
+                            ${processed.dependencies.map(dep => `<li>${dep}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+
+                ${processed.affectedComponents && processed.affectedComponents.length > 0 ? `
+                    <div class="ticket-section">
+                        <h5>Affected Components</h5>
+                        <ul class="simple-list">
+                            ${processed.affectedComponents.map(comp => `<li>${comp}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+
+                <div class="ticket-tags">
+                    ${(processed.tags || []).map(tag => `<span class="tag">#${tag}</span>`).join('')}
+                </div>
             </div>
         `;
         
         this.showResults(html);
-        this.showNotification('🎉 Ticket created successfully!', 'success');
+        this.showNotification('Engineering ticket created successfully!', 'success');
+    }
+
+    getTypeIcon(type) {
+        const icons = {
+            'bug': 'bug',
+            'feature': 'plus-circle',
+            'task': 'tasks',
+            'improvement': 'arrow-up',
+            'spike': 'search'
+        };
+        return icons[type] || 'tasks';
     }
 
     showError(message) {
@@ -190,7 +253,7 @@ class TicketCreator {
         `;
         
         this.showResults(html);
-        this.showNotification('❌ Failed to create ticket', 'error');
+        this.showNotification('Failed to create ticket', 'error');
     }
 
     showResults(html) {
@@ -232,6 +295,127 @@ class TicketCreator {
         textarea.style.height = Math.max(120, textarea.scrollHeight) + 'px';
     }
 
+    async showContextModal() {
+        document.getElementById('context-modal').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        await this.loadContext();
+    }
+
+    hideContextModal() {
+        document.getElementById('context-modal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    async loadContext() {
+        try {
+            const response = await fetch('/api/context');
+            const result = await response.json();
+            
+            if (result.success) {
+                document.getElementById('context-textarea').value = result.context;
+                this.updateContextStats(result.stats);
+            } else {
+                this.showNotification('Failed to load context', 'error');
+            }
+        } catch (error) {
+            console.error('Error loading context:', error);
+            this.showNotification('Error loading context', 'error');
+        }
+    }
+
+    async saveContext() {
+        const contextContent = document.getElementById('context-textarea').value;
+        const saveBtn = document.getElementById('save-context');
+        
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        
+        try {
+            const response = await fetch('/api/context', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ context: contextContent })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showNotification('Context saved successfully!', 'success');
+                await this.loadContext(); // Refresh stats
+            } else {
+                this.showNotification('Failed to save context: ' + result.error, 'error');
+            }
+        } catch (error) {
+            console.error('Error saving context:', error);
+            this.showNotification('Error saving context', 'error');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Context';
+        }
+    }
+
+    async resetContext() {
+        if (!confirm('Are you sure you want to reset to the default context? This will overwrite your current context.')) {
+            return;
+        }
+        
+        try {
+            // Load the default context template
+            const defaultContext = `# Company & Project Context
+
+## Company Information
+**Company Name:** Your Company Name
+**Industry:** Technology/SaaS/E-commerce/etc.
+**Team Size:** 10-50 developers
+**Development Methodology:** Agile/Scrum/Kanban
+
+## Tech Stack
+### Frontend
+- React/Vue/Angular
+- TypeScript
+- CSS Framework (Tailwind/Bootstrap)
+
+### Backend
+- Node.js/Python/Java
+- Database (PostgreSQL/MongoDB)
+- API (REST/GraphQL)
+
+## Current Projects
+### Main Product
+- **Name:** Your main application
+- **Description:** Brief description
+- **Key Features:** List main features
+- **Current Phase:** Development status
+
+## Development Standards
+- Code review required
+- Automated testing
+- CI/CD pipeline
+- Documentation standards
+
+*Edit this template with your actual company information.*`;
+
+            document.getElementById('context-textarea').value = defaultContext;
+            this.showNotification('Context reset to default template', 'success');
+        } catch (error) {
+            this.showNotification('Error resetting context', 'error');
+        }
+    }
+
+    updateContextStats(stats) {
+        document.getElementById('stat-sections').textContent = stats.totalSections || 0;
+        document.getElementById('stat-characters').textContent = (stats.totalCharacters || 0).toLocaleString();
+        
+        if (stats.lastModified) {
+            const date = new Date(stats.lastModified);
+            document.getElementById('stat-updated').textContent = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        } else {
+            document.getElementById('stat-updated').textContent = 'Never';
+        }
+    }
+
     showHelp() {
         document.getElementById('help-modal').style.display = 'block';
         document.body.style.overflow = 'hidden';
@@ -256,7 +440,7 @@ class TicketCreator {
             position: fixed;
             top: 20px;
             right: 20px;
-            background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+            background: ${type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#3b82f6'};
             color: white;
             padding: 15px 20px;
             border-radius: 10px;
@@ -347,9 +531,22 @@ document.addEventListener('keydown', (e) => {
     
     // Escape to close modal
     if (e.key === 'Escape') {
-        const modal = document.getElementById('help-modal');
-        if (modal && modal.style.display === 'block') {
+        const helpModal = document.getElementById('help-modal');
+        const contextModal = document.getElementById('context-modal');
+        
+        if (helpModal && helpModal.style.display === 'block') {
             document.getElementById('close-help').click();
+        } else if (contextModal && contextModal.style.display === 'block') {
+            document.getElementById('close-context').click();
+        }
+    }
+    
+    // Ctrl/Cmd + S to save context when modal is open
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        const contextModal = document.getElementById('context-modal');
+        if (contextModal && contextModal.style.display === 'block') {
+            e.preventDefault();
+            document.getElementById('save-context').click();
         }
     }
 });

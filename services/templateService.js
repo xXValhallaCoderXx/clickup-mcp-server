@@ -33,27 +33,71 @@ class TemplateService {
     }
 
     formatDescription(processedTicket) {
-        let description = processedTicket.description || '';
+        const sections = [];
         
-        // Add type information
-        if (processedTicket.type) {
-            description = `**Type:** ${processedTicket.type.charAt(0).toUpperCase() + processedTicket.type.slice(1)}\n\n${description}`;
+        // Summary section
+        if (processedTicket.summary) {
+            sections.push(`## Summary\n${processedTicket.summary}`);
         }
         
-        // Add acceptance criteria if available
+        // Description section
+        if (processedTicket.description) {
+            sections.push(`## Description\n${processedTicket.description}`);
+        }
+        
+        // Bug-specific sections
+        if (processedTicket.type === 'bug') {
+            if (processedTicket.stepsToReproduce && processedTicket.stepsToReproduce.length > 0) {
+                sections.push(`## Steps to Reproduce\n${processedTicket.stepsToReproduce.map((step, i) => `${i + 1}. ${step}`).join('\n')}`);
+            }
+            
+            if (processedTicket.expectedBehavior) {
+                sections.push(`## Expected Behavior\n${processedTicket.expectedBehavior}`);
+            }
+            
+            if (processedTicket.actualBehavior) {
+                sections.push(`## Actual Behavior\n${processedTicket.actualBehavior}`);
+            }
+        }
+        
+        // Acceptance criteria (for all types)
         if (processedTicket.acceptanceCriteria && processedTicket.acceptanceCriteria.length > 0) {
-            description += '\n\n**Acceptance Criteria:**\n';
-            processedTicket.acceptanceCriteria.forEach((criteria, index) => {
-                description += `${index + 1}. ${criteria}\n`;
-            });
+            sections.push(`## Acceptance Criteria\n${processedTicket.acceptanceCriteria.map(criteria => `- [ ] ${criteria}`).join('\n')}`);
         }
         
-        // Add estimated hours if available
+        // Technical notes
+        if (processedTicket.technicalNotes) {
+            sections.push(`## Technical Notes\n${processedTicket.technicalNotes}`);
+        }
+        
+        // Testing notes
+        if (processedTicket.testingNotes) {
+            sections.push(`## Testing Notes\n${processedTicket.testingNotes}`);
+        }
+        
+        // Dependencies
+        if (processedTicket.dependencies && processedTicket.dependencies.length > 0) {
+            sections.push(`## Dependencies\n${processedTicket.dependencies.map(dep => `- ${dep}`).join('\n')}`);
+        }
+        
+        // Affected components
+        if (processedTicket.affectedComponents && processedTicket.affectedComponents.length > 0) {
+            sections.push(`## Affected Components\n${processedTicket.affectedComponents.map(comp => `- ${comp}`).join('\n')}`);
+        }
+        
+        // Estimation information
+        const estimationInfo = [];
+        if (processedTicket.estimatedComplexity) {
+            estimationInfo.push(`**Complexity:** ${processedTicket.estimatedComplexity}`);
+        }
         if (processedTicket.estimatedHours) {
-            description += `\n\n**Estimated Hours:** ${processedTicket.estimatedHours}`;
+            estimationInfo.push(`**Estimated Hours:** ${processedTicket.estimatedHours}`);
+        }
+        if (estimationInfo.length > 0) {
+            sections.push(`## Estimation\n${estimationInfo.join('\n')}`);
         }
         
-        return description;
+        return sections.join('\n\n');
     }
 
     formatTags(tags = [], type = null) {
