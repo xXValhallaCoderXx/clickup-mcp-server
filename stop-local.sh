@@ -3,7 +3,7 @@
 echo "🛑 Stopping Local ClickUp Ticket Creator"
 echo "========================================"
 
-docker-compose down
+docker compose down
 
 echo "✅ All services stopped"
 echo "💾 Data is preserved in Docker volumes"

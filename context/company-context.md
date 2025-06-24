@@ -1,142 +1,97 @@
-# Company & Project Context
+# Gnosis HQ Overview
 
-This file contains context information that will be used to generate more relevant and tailored tickets. Edit this file to match your company, tech stack, and project details.
+## 🏢 Background & Origin
+- **Name**: Formerly Headquarters.xyz, now rebranded as **Gnosis HQ**
+- **Founded**: 2022, Singapore
+- **Team**: Composed of experts in fintech, crypto, payments, and data
 
-## Company Information
+## 💼 Acquisition
+- Acquired by **Gnosis** in **May 2025** for **US $15M**
+- Goal: Strengthen Gnosis' onchain business-banking suite and accelerate expansion into Asia
 
-**Company Name:** Your Company Name
-**Industry:** Technology/SaaS/E-commerce/etc.
-**Team Size:** 10-50 developers
-**Development Methodology:** Agile/Scrum/Kanban
-
-## Tech Stack
-
-### Frontend
-- React 18 with TypeScript
-- Next.js 14
-- Tailwind CSS
-- React Query for state management
-- Vercel for deployment
-
-### Backend
-- Node.js with Express
-- PostgreSQL database
-- Redis for caching
-- JWT authentication
-- AWS S3 for file storage
-
-### Infrastructure
-- AWS (EC2, RDS, S3, CloudFront)
-- Docker containers
-- GitHub Actions for CI/CD
-- Monitoring with DataDog
-
-### Tools & Services
-- GitHub for version control
-- Slack for communication
-- Figma for design
-- Sentry for error tracking
-
-## Current Projects
-
-### Main Product
-- **Name:** Customer Portal
-- **Description:** Web application for customer account management
-- **Key Features:** User authentication, billing, support tickets, analytics dashboard
-- **Current Phase:** Adding new payment integrations
-
-### Mobile App
-- **Name:** Mobile Companion
-- **Description:** React Native app for iOS and Android
-- **Status:** In development, beta testing phase
-
-## Common Components & Services
-
-### Authentication Service
-- Handles user login/logout
-- JWT token management
-- Role-based permissions
-- OAuth integrations (Google, GitHub)
-
-### Payment System
-- Stripe integration
-- Subscription management
-- Invoice generation
-- Payment history
-
-### Notification System
-- Email notifications (SendGrid)
-- In-app notifications
-- Push notifications for mobile
-- SMS alerts for critical events
-
-## Development Standards
-
-### Code Quality
-- TypeScript for type safety
-- ESLint and Prettier for code formatting
-- Jest for unit testing
-- Cypress for E2E testing
-- Minimum 80% test coverage
-
-### Deployment Process
-- Feature branches with pull requests
-- Code review required before merge
-- Automated testing in CI/CD
-- Staging environment for testing
-- Blue-green deployments to production
-
-### Performance Requirements
-- Page load times < 2 seconds
-- API response times < 500ms
-- 99.9% uptime SLA
-- Mobile-first responsive design
-
-## Common Issues & Patterns
-
-### Frequent Bug Areas
-- Payment processing edge cases
-- Mobile responsive design issues
-- Authentication token expiration
-- Third-party API rate limiting
-
-### Technical Debt
-- Legacy jQuery components need React migration
-- Database queries need optimization
-- API documentation needs updates
-- Error handling inconsistencies
-
-## Team Structure
-
-### Frontend Team
-- 3 React developers
-- 1 UI/UX designer
-- Focus on user experience and performance
-
-### Backend Team
-- 2 Node.js developers
-- 1 DevOps engineer
-- Focus on API development and infrastructure
-
-### QA Team
-- 1 QA engineer
-- Manual and automated testing
-- Performance and security testing
-
-## Business Context
-
-### Key Metrics
-- Monthly Active Users (MAU)
-- Customer Acquisition Cost (CAC)
-- Churn rate
-- Revenue per user
-
-### Compliance Requirements
-- GDPR compliance for EU users
-- SOC 2 Type II certification
-- PCI DSS for payment processing
-- Regular security audits
+## 🧭 Positioning
+- **Gnosis HQ** brands itself as a **Finance OS for Web3**
+- Provides non-custodial and self-custodial wallets
+- Supports EVM chains: Ethereum, Arbitrum, Optimism, Polygon
 
 ---
 
-**Instructions:** Update the sections above with your actual company information. The more specific and detailed you make this context, the better the AI will be at generating relevant tickets that fit your environment.
+## ⭐ Core Features
+
+### 🪙 Token & Stablecoin Payments
+- Global crypto payments
+- Batch payouts with draft-review-execute workflows
+- Supports EOA wallets & Gnosis Safe (multisig)
+
+### 💳 Stablecoin-Linked Corporate Cards
+- Issue Visa cards funded directly by stablecoins
+- Real-time expense tracking with tags
+
+### 💱 Crypto-to-Fiat Payouts
+- Convert USDC to fiat in 30+ currencies
+- Ideal for payroll & vendor payments
+
+### 🧾 Invoice & Payment Links
+- Create crypto payment links (standalone or Xero-integrated)
+
+### 📊 Treasury Reporting & Accounting
+- Multi-wallet aggregation
+- Cost-basis, gains tracking, tax lots
+- Journal exports and QuickBooks/Xero integrations
+
+### 💼 Expense Management & Payroll
+- Track team expenses by card or wallet
+- Run borderless payroll in stablecoins
+
+### 🔐 Security & Compliance
+- SOC 1 & SOC 2 Type II certified
+- Multisig (via Gnosis Safe), role-based access, SSO/SAML
+- Zero data retention, EU/AU data endpoints
+
+---
+
+## 🛠 Workflow & Controls
+
+- **Draft Payments System**: Multi-step approvals with import/remediation tools  
+- **Wallet Aggregation**: Group and import wallets for consolidated tracking  
+- **Chart of Accounts & Automation**: Automate tagging and bookkeeping
+
+---
+
+## 👥 Target Audience & Pricing
+
+### Target Users
+- Crypto-native teams: freelance to enterprise
+- Needs span treasury, payments, accounting, and payroll
+
+### Pricing Plans
+- **Starter (Free)**: Virtual/physical cards, basic off-ramps, batch payments
+- **Business (~$185/mo)**: Accounting, 1,000 tx/month, SSO, Xero/QuickBooks sync
+- **Enterprise**: Custom volume, bookkeeping help, referral rewards
+
+### Compliance & Ops
+- SOC-certified
+- Granular access controls, BAA, SSO/SAML, zero retention
+
+---
+
+## 🌐 Ecosystem & Integrations
+
+- **Chains**: Ethereum, Arbitrum, Optimism, Polygon
+- **Accounting**: Xero, QuickBooks, CSV
+- **Partners**: Circle (including Circle Directory), HQ Concierge for compliance support
+
+---
+
+## 🔗 Why It Matters
+
+- **Unified Stack**: Payments, cards, fiat off-ramps, and accounting in one place
+- **Self-Custody by Design**: Companies hold their own keys
+- **Scalable Infrastructure**: Grow from crypto-native ops to full financial stack
+- **Audit-Ready**: Logs, role-based controls, and SOC-compliance built-in
+
+---
+
+## 🎯 Key Takeaway
+
+**Gnosis HQ** is the all-in-one **Finance OS for Web3 businesses**, offering seamless integration of crypto-native payments, corporate cards, accounting, and compliance. Whether you're a startup or a scaling enterprise, HQ empowers onchain financial control with strong security and operational workflows.
