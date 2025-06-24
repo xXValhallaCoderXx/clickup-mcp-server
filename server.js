@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
+const axios = require('axios');
 require('dotenv').config();
 
 const clickupService = require('./services/clickupService');
@@ -26,27 +27,42 @@ app.get('/', (req, res) => {
 // API Routes
 app.post('/api/create-ticket', async (req, res) => {
     try {
-        const { description, priority = 'normal', assignee = null } = req.body;
+        const { description, priority = 'normal', assignee = null, useN8N = true } = req.body;
         
         if (!description) {
             return res.status(400).json({ error: 'Description is required' });
         }
 
-        console.log('Processing ticket creation request:', { description, priority, assignee });
+        console.log('Processing ticket creation request:', { description, priority, assignee, useN8N });
 
-        // Process description with LLM to extract structured data
+        if (useN8N && process.env.N8N_WEBHOOK_URL) {
+            // Use N8N workflow
+            try {
+                const n8nResponse = await axios.post(process.env.N8N_WEBHOOK_URL, {
+                    description,
+                    priority,
+                    assignee,
+                    listId: process.env.CLICKUP_LIST_ID
+                });
+                
+                res.json(n8nResponse.data);
+                return;
+            } catch (n8nError) {
+                console.warn('N8N workflow failed, falling back to direct processing:', n8nError.message);
+                // Fall through to direct processing
+            }
+        }
+
+        // Direct processing (fallback or when N8N is disabled)
         const processedTicket = await llmService.processDescription(description);
-        
-        // Apply template to create ClickUp ticket structure
         const ticketData = templateService.applyTemplate(processedTicket, { priority, assignee });
-        
-        // Create ticket in ClickUp
         const createdTicket = await clickupService.createTask(ticketData);
         
         res.json({
             success: true,
             ticket: createdTicket,
-            processed: processedTicket
+            processed: processedTicket,
+            method: 'direct'
         });
         
     } catch (error) {

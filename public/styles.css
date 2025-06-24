@@ -739,3 +739,54 @@ body {
         flex-direction: column;
     }
 }
+
+
+/* Checkbox styling */
+.checkbox-label {
+    display: flex !important;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    font-weight: 500 !important;
+    color: #ffffff !important;
+    margin-bottom: 8px !important;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.checkbox-label i {
+    color: #3b82f6;
+    margin-right: 0 !important;
+}
+
+.form-help {
+    font-size: 0.75rem;
+    color: #71717a;
+    margin-top: 4px;
+    line-height: 1.4;
+}
+
+/* Workflow status indicator */
+.workflow-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-left: 8px;
+}
+
+.workflow-status.n8n {
+    background: #1e40af;
+    color: #dbeafe;
+}
+
+.workflow-status.direct {
+    background: #374151;
+    color: #d1d5db;
+}

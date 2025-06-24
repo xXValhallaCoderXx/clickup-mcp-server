@@ -33,6 +33,9 @@ class TicketCreator {
         document.getElementById('save-context').addEventListener('click', () => this.saveContext());
         document.getElementById('reset-context').addEventListener('click', () => this.resetContext());
 
+        // N8N integration
+        document.getElementById('open-n8n').addEventListener('click', () => this.openN8N());
+
         // Help modal
         document.getElementById('show-help').addEventListener('click', () => this.showHelp());
         document.getElementById('close-help').addEventListener('click', () => this.hideHelp());
@@ -64,7 +67,8 @@ class TicketCreator {
         const data = {
             description: formData.get('description').trim(),
             priority: formData.get('priority'),
-            assignee: formData.get('assignee').trim() || null
+            assignee: formData.get('assignee').trim() || null,
+            useN8N: document.getElementById('use-n8n').checked
         };
 
         if (!data.description) {
@@ -414,6 +418,10 @@ class TicketCreator {
         } else {
             document.getElementById('stat-updated').textContent = 'Never';
         }
+    }
+
+    openN8N() {
+        window.open('http://localhost:5678', '_blank');
     }
 
     showHelp() {
