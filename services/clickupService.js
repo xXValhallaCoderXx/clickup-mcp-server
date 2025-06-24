@@ -35,6 +35,19 @@ class ClickUpService {
         }
     }
 
+    // Verify list access and get list details
+    async verifyListAccess(listId) {
+        try {
+            console.log(`Verifying access to list: ${listId}`);
+            const response = await this.client.get(`/list/${listId}`);
+            console.log(`List verified: ${response.data.name} (ID: ${response.data.id})`);
+            return response.data;
+        } catch (error) {
+            console.error(`List verification failed:`, error.response?.data);
+            throw new Error(`Cannot access list ${listId}: ${error.response?.data?.err || error.message}`);
+        }
+    }
+
     async getSpaces(teamId = this.teamId) {
         try {
             const response = await this.client.get(`/team/${teamId}/space`);
@@ -70,11 +83,16 @@ class ClickUpService {
                 throw new Error('List ID is required to create a task. Set CLICKUP_LIST_ID in your .env file or provide listId in taskData.');
             }
 
+            console.log(`Creating task in list: ${listId}`);
+
+            // First, let's verify the list exists and we have access
+            await this.verifyListAccess(listId);
+
             const payload = {
                 name: taskData.name,
                 description: taskData.description,
                 priority: this.mapPriority(taskData.priority),
-                status: taskData.status || 'to do',
+                status: 'open',
                 assignees: taskData.assignees || [],
                 tags: taskData.tags || [],
                 due_date: taskData.dueDate ? new Date(taskData.dueDate).getTime() : null,
@@ -91,7 +109,14 @@ class ClickUpService {
             console.log('Creating ClickUp task with payload:', JSON.stringify(payload, null, 2));
 
             const response = await this.client.post(`/list/${listId}/task`, payload);
-            return response.data;
+
+            // Return the task with URL if available
+            const task = response.data;
+            if (task && task.id) {
+                task.url = `https://app.clickup.com/t/${task.id}`;
+            }
+
+            return task;
         } catch (error) {
             console.error('ClickUp API Error:', error.response?.data);
             throw new Error(`Failed to create task: ${error.response?.data?.err || error.message}`);
@@ -106,6 +131,17 @@ class ClickUpService {
             'low': 4
         };
         return priorityMap[priority?.toLowerCase()] || 3;
+    }
+
+    // Helper method to extract List ID from ClickUp URL
+    static extractListIdFromUrl(url) {
+        try {
+            // Match patterns like: /v/l/rf3me-17585 or /v/l/123456
+            const match = url.match(/\/v\/l\/([^/?]+)/);
+            return match ? match[1] : null;
+        } catch (error) {
+            return null;
+        }
     }
 
     async getTaskStatuses(listId = this.listId) {
@@ -123,6 +159,65 @@ class ClickUpService {
             return response.data.team.members;
         } catch (error) {
             throw new Error(`Failed to get team members: ${error.response?.data?.err || error.message}`);
+        }
+    }
+
+    // Method to find all accessible lists
+    async findAllLists() {
+        try {
+            const teams = await this.getTeams();
+            const allLists = [];
+
+            for (const team of teams) {
+                try {
+                    const spaces = await this.getSpaces(team.id);
+
+                    for (const space of spaces) {
+                        try {
+                            // Try to get lists directly from space (folderless lists)
+                            const spaceResponse = await this.client.get(`/space/${space.id}/list`);
+                            if (spaceResponse.data.lists) {
+                                allLists.push(...spaceResponse.data.lists.map(list => ({
+                                    ...list,
+                                    teamName: team.name,
+                                    spaceName: space.name,
+                                    location: 'space'
+                                })));
+                            }
+                        } catch (error) {
+                            // Space might not have direct lists
+                        }
+
+                        try {
+                            // Get folders in space
+                            const folders = await this.getFolders(space.id);
+
+                            for (const folder of folders) {
+                                try {
+                                    const lists = await this.getLists(folder.id);
+                                    allLists.push(...lists.map(list => ({
+                                        ...list,
+                                        teamName: team.name,
+                                        spaceName: space.name,
+                                        folderName: folder.name,
+                                        location: 'folder'
+                                    })));
+                                } catch (error) {
+                                    // Folder might not have lists
+                                }
+                            }
+                        } catch (error) {
+                            // Space might not have folders
+                        }
+                    }
+                } catch (error) {
+                    console.warn(`Could not access team ${team.name}:`, error.message);
+                }
+            }
+
+            return allLists;
+        } catch (error) {
+            throw new Error(`Failed to find lists: ${error.message}`);
         }
     }
 }

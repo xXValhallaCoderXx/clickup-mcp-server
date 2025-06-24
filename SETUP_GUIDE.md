@@ -23,8 +23,10 @@ You need at least one List ID where tickets will be created.
 **Method A - From ClickUp URL:**
 1. Go to any list in ClickUp
 2. Look at the browser URL
-3. It will look like: `https://app.clickup.com/12345678/v/l/90123456`
-4. The number after `/l/` is your List ID (`90123456` in this example)
+3. Examples:
+   - `https://app.clickup.com/12345678/v/l/90123456` → List ID: `90123456`
+   - `https://app.clickup.com/25661070/v/l/rf3me-17585?pr=90080284723` → List ID: `rf3me-17585`
+4. The part after `/l/` (before any `?`) is your List ID
 
 **Method B - Use our app (after setup):**
 1. Complete the setup first

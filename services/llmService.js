@@ -6,7 +6,7 @@ class LLMService {
         this.baseURL = 'https://openrouter.ai/api/v1';
         
         // Using free models from OpenRouter
-        this.model = 'microsoft/phi-3-mini-128k-instruct:free'; // Free model
+        this.model = 'deepseek/deepseek-r1-0528-qwen3-8b:free'; // Free model
         
         this.client = axios.create({
             baseURL: this.baseURL,

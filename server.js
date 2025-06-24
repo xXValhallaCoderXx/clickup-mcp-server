@@ -168,6 +168,77 @@ app.get('/api/templates', (req, res) => {
     res.json({ success: true, templates });
 });
 
+// Extract List ID from ClickUp URL
+app.post('/api/extract-list-id', (req, res) => {
+    try {
+        const { url } = req.body;
+        
+        if (!url) {
+            return res.status(400).json({ error: 'URL is required' });
+        }
+        
+        const listId = clickupService.constructor.extractListIdFromUrl(url);
+        
+        if (listId) {
+            res.json({ 
+                success: true, 
+                listId,
+                message: `Extracted List ID: ${listId}`
+            });
+        } else {
+            res.status(400).json({ 
+                error: 'Could not extract List ID from URL. Please check the URL format.' 
+            });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Find all accessible lists
+app.get('/api/find-lists', async (req, res) => {
+    try {
+        const lists = await clickupService.findAllLists();
+        res.json({ 
+            success: true, 
+            lists: lists.map(list => ({
+                id: list.id,
+                name: list.name,
+                teamName: list.teamName,
+                spaceName: list.spaceName,
+                folderName: list.folderName || null,
+                location: list.location
+            }))
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Verify specific list access
+app.post('/api/verify-list', async (req, res) => {
+    try {
+        const { listId } = req.body;
+        
+        if (!listId) {
+            return res.status(400).json({ error: 'List ID is required' });
+        }
+        
+        const listData = await clickupService.verifyListAccess(listId);
+        res.json({ 
+            success: true, 
+            list: {
+                id: listData.id,
+                name: listData.name,
+                status: listData.status,
+                permission_level: listData.permission_level
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`🚀 ClickUp MCP Server running on http://localhost:${PORT}`);
     console.log(`📝 Open the web interface to start creating tickets`);
