@@ -459,11 +459,12 @@ Examples:
             }
 
             formatSearchResults(result) {
-                const { results, totalFound, searchParams } = result;
+                const { results, totalFound, searchParams, limitApplied } = result;
                 
                 let html = `
                     <div class="success-message">
                         <strong>Found ${totalFound} ticket${totalFound !== 1 ? 's' : ''}</strong> matching your query.
+                        ${limitApplied ? `<br><small style="color: #64748b;">Showing top ${limitApplied} results as requested.</small>` : ''}
                     </div>
                 `;
 

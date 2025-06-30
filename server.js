@@ -106,7 +106,8 @@ app.post('/api/search-tickets', async (req, res) => {
             dueDateGt: searchParams.dueDateGt,
             dueDateLt: searchParams.dueDateLt,
             orderBy: searchParams.orderBy,
-            reverse: searchParams.reverse
+            reverse: searchParams.reverse,
+            limit: searchParams.limit
         });
 
         res.json({
@@ -175,7 +176,8 @@ app.post('/mcp', async (req, res) => {
                 dueDateGt: searchParams.dueDateGt,
                 dueDateLt: searchParams.dueDateLt,
                 orderBy: searchParams.orderBy,
-                reverse: searchParams.reverse
+                reverse: searchParams.reverse,
+                limit: searchParams.limit
             });
 
             res.json({

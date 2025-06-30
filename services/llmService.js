@@ -1,29 +1,26 @@
-const axios = require("axios");
-const contextService = require("./contextService");
+const axios = require('axios');
+const contextService = require('./contextService');
 
 class LLMService {
     constructor() {
         this.apiKey = process.env.OPENROUTER_API_KEY;
-        this.baseURL = "https://openrouter.ai/api/v1";
-
-        // Using more reliable free models from OpenRouter
+        this.baseURL = 'https://openrouter.ai/api/v1';
+        
+        // Using the working model
         this.models = [
-            // 'mistralai/mistral-small-3.2-24b-instruct:free',
-            //   "minimax/minimax-m1:extended",
-            "google/gemini-2.0-flash-001",
-            // "deepseek/deepseek-r1-0528-qwen3-8b:free",
+            'google/gemini-2.0-flash-001'
         ];
         this.currentModelIndex = 0;
-
+        
         this.client = axios.create({
             baseURL: this.baseURL,
             headers: {
-                Authorization: `Bearer ${this.apiKey}`,
-                "Content-Type": "application/json",
-                "HTTP-Referer": "http://localhost:3000", // Required for some free models
-                "X-Title": "ClickUp MCP Server",
+                'Authorization': `Bearer ${this.apiKey}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'http://localhost:3000', // Required for some free models
+                'X-Title': 'ClickUp MCP Server'
             },
-            timeout: 30000, // 30 second timeout
+            timeout: 30000 // 30 second timeout
         });
     }
 
@@ -123,237 +120,189 @@ class LLMService {
     async processDescription(description) {
         // Check if we have an API key
         if (!this.apiKey) {
-            throw new Error(
-                "LLM service unavailable: No OpenRouter API key configured"
-            );
+            throw new Error('LLM service unavailable: No OpenRouter API key configured');
         }
 
         try {
             const prompt = this.buildPrompt(description);
-
-            const response = await this.client.post("/chat/completions", {
+            
+            const response = await this.client.post('/chat/completions', {
                 model: this.getCurrentModel(),
                 messages: [
                     {
-                        role: "system",
-                        content:
-                            "You are a helpful assistant that extracts structured information from issue descriptions to create well-formatted tickets. CRITICAL: Respond with ONLY raw JSON - no markdown code blocks, no backticks, no explanations, just the JSON object.",
+                        role: 'system',
+                        content: 'You are a helpful assistant that extracts structured information from issue descriptions to create well-formatted tickets. CRITICAL: Respond with ONLY raw JSON - no markdown code blocks, no backticks, no explanations, just the JSON object.'
                     },
                     {
-                        role: "user",
-                        content: prompt,
-                    },
+                        role: 'user',
+                        content: prompt
+                    }
                 ],
                 temperature: 0.3,
-                max_tokens: 1000,
+                max_tokens: 1000
             });
 
             // Check if we got a valid response
-            if (
-                !response.data ||
-                !response.data.choices ||
-                !response.data.choices[0] ||
-                !response.data.choices[0].message
-            ) {
-                throw new Error(
-                    "LLM service unavailable: Invalid response structure from API"
-                );
+            if (!response.data || !response.data.choices || !response.data.choices[0] || !response.data.choices[0].message) {
+                throw new Error('LLM service unavailable: Invalid response structure from API');
             }
 
             const content = response.data.choices[0].message.content?.trim();
-
+            
             // Check for empty content
             if (!content) {
-                throw new Error("LLM service unavailable: Empty response from API");
+                throw new Error('LLM service unavailable: Empty response from API');
             }
-
+            
             // Try to parse JSON response using the shared parser
             const result = this.parseJsonResponse(content);
             if (result) {
                 return result;
             }
-
-            throw new Error(
-                "LLM service unavailable: Failed to parse response as valid JSON"
-            );
+            
+            throw new Error('LLM service unavailable: Failed to parse response as valid JSON');
+            
         } catch (error) {
-            console.error(
-                "LLM Service Error:",
-                error.response?.data || error.message
-            );
-
+            console.error('LLM Service Error:', error.response?.data || error.message);
+            
             // Re-throw with service unavailable message
-            if (error.message.startsWith("LLM service unavailable:")) {
+            if (error.message.startsWith('LLM service unavailable:')) {
                 throw error;
             }
-            throw new Error(
-                "LLM service unavailable: " +
-                (error.response?.data?.error?.message || error.message)
-            );
+            throw new Error('LLM service unavailable: ' + (error.response?.data?.error?.message || error.message));
         }
     }
 
     async processSearchQuery(searchQuery) {
         // Check if we have an API key
         if (!this.apiKey) {
-            throw new Error(
-                "LLM service unavailable: No OpenRouter API key configured"
-            );
+            throw new Error('LLM service unavailable: No OpenRouter API key configured');
         }
 
         try {
             const prompt = this.buildSearchPrompt(searchQuery);
-
-
-            const response = await this.client.post("/chat/completions", {
+            
+            const response = await this.client.post('/chat/completions', {
                 model: this.getCurrentModel(),
                 messages: [
                     {
-                        role: "system",
-                        content:
-                            "You are a helpful assistant that converts natural language search queries into structured search parameters for ClickUp tasks. CRITICAL: Respond with ONLY raw JSON - no markdown code blocks, no backticks, no explanations, just the JSON object.",
+                        role: 'system',
+                        content: 'You are a helpful assistant that converts natural language search queries into structured search parameters for ClickUp tasks. CRITICAL: Respond with ONLY raw JSON - no markdown code blocks, no backticks, no explanations, just the JSON object.'
                     },
                     {
-                        role: "user",
-                        content: prompt,
-                    },
+                        role: 'user',
+                        content: prompt
+                    }
                 ],
                 temperature: 0.1,
-                max_tokens: 500,
+                max_tokens: 500
             });
 
             // Check if we got a valid response
-            if (
-                !response.data ||
-                !response.data.choices ||
-                !response.data.choices[0] ||
-                !response.data.choices[0].message
-            ) {
-                throw new Error(
-                    "LLM service unavailable: Invalid response structure from API"
-                );
+            if (!response.data || !response.data.choices || !response.data.choices[0] || !response.data.choices[0].message) {
+                throw new Error('LLM service unavailable: Invalid response structure from API');
             }
 
             const content = response.data.choices[0].message.content?.trim();
             console.log("CONTENT: ", content);
-
+            
             // Check for empty content
             if (!content) {
-                throw new Error("LLM service unavailable: Empty response from API");
+                throw new Error('LLM service unavailable: Empty response from API');
             }
-
+            
             // Try to parse JSON response using the shared parser
             const result = this.parseJsonResponse(content);
             if (result) {
                 return result;
             }
-
-            throw new Error(
-                "LLM service unavailable: Failed to parse response as valid JSON"
-            );
+            
+            throw new Error('LLM service unavailable: Failed to parse response as valid JSON');
+            
         } catch (error) {
-            console.error(
-                "LLM Search Service Error:",
-                error.response?.data || error.message
-            );
-
+            console.error('LLM Search Service Error:', error.response?.data || error.message);
+            
             // Re-throw with service unavailable message
-            if (error.message.startsWith("LLM service unavailable:")) {
+            if (error.message.startsWith('LLM service unavailable:')) {
                 throw error;
             }
-            throw new Error(
-                "LLM service unavailable: " +
-                (error.response?.data?.error?.message || error.message)
-            );
+            throw new Error('LLM service unavailable: ' + (error.response?.data?.error?.message || error.message));
         }
     }
 
     async determineIntent(prompt) {
         // Check if we have an API key
         if (!this.apiKey) {
-            throw new Error(
-                "LLM service unavailable: No OpenRouter API key configured"
-            );
+            throw new Error('LLM service unavailable: No OpenRouter API key configured');
         }
 
         let lastError = null;
-
+        
         // Try each model in sequence
         for (let attempt = 0; attempt < this.models.length; attempt++) {
             try {
                 const currentModel = this.getCurrentModel();
                 console.log(`Attempting intent detection with model: ${currentModel}`);
-
+                
                 const intentPrompt = this.buildIntentPrompt(prompt);
-
-                const response = await this.client.post("/chat/completions", {
+                
+                const response = await this.client.post('/chat/completions', {
                     model: currentModel,
                     messages: [
                         {
-                            role: "system",
-                            content:
-                                "You are a helpful assistant that determines user intent for ticket management. CRITICAL: Respond with ONLY raw JSON - no markdown code blocks, no backticks, no explanations, just the JSON object.",
+                            role: 'system',
+                            content: 'You are a helpful assistant that determines user intent for ticket management. CRITICAL: Respond with ONLY raw JSON - no markdown code blocks, no backticks, no explanations, just the JSON object.'
                         },
                         {
-                            role: "user",
-                            content: intentPrompt,
-                        },
+                            role: 'user',
+                            content: intentPrompt
+                        }
                     ],
                     temperature: 0.1,
-                    max_tokens: 200,
+                    max_tokens: 200
                 });
 
                 // Check if we got a valid response
-                if (
-                    !response.data ||
-                    !response.data.choices ||
-                    !response.data.choices[0] ||
-                    !response.data.choices[0].message
-                ) {
-                    throw new Error("Invalid response structure from LLM API");
+                if (!response.data || !response.data.choices || !response.data.choices[0] || !response.data.choices[0].message) {
+                    throw new Error('Invalid response structure from LLM API');
                 }
 
                 const content = response.data.choices[0].message.content?.trim();
                 console.log(`Model ${currentModel} response:`, content);
-
+                
                 // Check for empty content
                 if (!content) {
-                    throw new Error("Empty response from LLM API");
+                    throw new Error('Empty response from LLM API');
                 }
-
+                
                 // Try to parse JSON response
                 const result = this.parseJsonResponse(content);
                 if (result) {
                     console.log(`Successfully parsed intent with model: ${currentModel}`);
                     return result;
                 }
-
-                throw new Error("Failed to parse JSON response");
+                
+                throw new Error('Failed to parse JSON response');
+                
             } catch (error) {
                 lastError = error;
-                console.error(
-                    `Model ${this.getCurrentModel()} failed:`,
-                    error.response?.data || error.message
-                );
-
+                console.error(`Model ${this.getCurrentModel()} failed:`, error.response?.data || error.message);
+                
                 // Try next model
                 this.tryNextModel();
             }
         }
-
-        console.error("All LLM models failed for intent detection");
-        console.error("Last error:", lastError?.message);
-
+        
+        console.error('All LLM models failed for intent detection');
+        console.error('Last error:', lastError?.message);
+        
         // No fallback - throw error
-        throw new Error(
-            "LLM service unavailable: All models failed to determine intent - " +
-            (lastError?.response?.data?.error?.message || lastError?.message)
-        );
+        throw new Error('LLM service unavailable: All models failed to determine intent - ' + (lastError?.response?.data?.error?.message || lastError?.message));
     }
 
     buildPrompt(description) {
         const contextPrompt = contextService.buildContextPrompt();
-
+        
         return `
 You are an expert engineering project manager. Analyze the following user description and create a well-structured engineering ticket.
 
@@ -429,7 +378,8 @@ Convert this into a JSON object with the following structure:
     "dueDateLt": "timestamp" or null,
     "priority": "urgent|high|normal|low" or null,
     "orderBy": "created|updated|due_date|priority",
-    "reverse": true|false
+    "reverse": true|false,
+    "limit": number or null
 }
 
 EXTRACTION RULES:
@@ -444,12 +394,25 @@ EXTRACTION RULES:
    - "this month" = first day of current month to now
    - "last month" = first day to last day of previous month
 6. **Priority**: Look for "urgent", "high priority", "low priority", etc.
-7. **Ordering**: Default to "updated" with reverse=true (newest first)
+7. **Ordering**: Detect ordering preferences from keywords:
+   - "newest", "latest", "recent" -> orderBy: "created", reverse: true
+   - "oldest", "first" -> orderBy: "created", reverse: false
+   - "updated", "modified" -> orderBy: "updated", reverse: true
+   - "priority" -> orderBy: "priority", reverse: true
+   - Default: orderBy: "updated", reverse: true
+8. **Limit**: Extract numbers from phrases like:
+   - "10 newest tickets" -> limit: 10
+   - "first 5 bugs" -> limit: 5
+   - "top 20 tasks" -> limit: 20
+   - "last 3 tickets" -> limit: 3
+   - If no number specified, limit: null (use default)
 
 EXAMPLES:
-- "bugs assigned to john" results in {"query": "bugs", "assignees": ["john"]}
-- "high priority tasks created last week" results in {"query": "tasks", "priority": "high", "dateCreatedGt": timestamp_7_days_ago}
-- "completed tickets tagged frontend" results in {"query": "tickets", "statuses": ["complete", "done"], "tags": ["frontend"]}
+- "bugs assigned to john" results in {"query": "bugs", "assignees": ["john"], "limit": null}
+- "10 newest tickets" results in {"query": "tickets", "orderBy": "created", "reverse": true, "limit": 10}
+- "first 5 high priority tasks" results in {"query": "tasks", "priority": "high", "orderBy": "created", "reverse": false, "limit": 5}
+- "last 3 tickets created today" results in {"query": "tickets", "dateCreatedGt": today_timestamp, "orderBy": "created", "reverse": true, "limit": 3}
+- "top 20 bugs by priority" results in {"query": "bugs", "orderBy": "priority", "reverse": true, "limit": 20}
 
 CRITICAL: Return ONLY the raw JSON object - no markdown, no code blocks, no explanations.`;
     }
@@ -502,7 +465,7 @@ CRITICAL: Respond with ONLY raw JSON - no markdown code blocks, no backticks, no
 
     async testConnection() {
         try {
-            const response = await this.client.get("/models");
+            const response = await this.client.get('/models');
             return { success: true, models: response.data.data.slice(0, 5) };
         } catch (error) {
             return { success: false, error: error.message };

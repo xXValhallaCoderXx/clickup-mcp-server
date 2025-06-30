@@ -180,7 +180,8 @@ class ClickUpService {
                 includeSubtasks = false,
                 page = 0,
                 orderBy = 'updated',
-                reverse = true
+                reverse = true,
+                limit = null
             } = options;
 
             if (!teamId) {
@@ -228,13 +229,22 @@ class ClickUpService {
             params.append('order_by', orderBy);
             params.append('reverse', reverse);
 
-            console.log(`Searching tasks in team ${teamId} with query: "${query}"`);
+            console.log(`Searching tasks in team ${teamId} with query: "${query}"${limit ? ` (limit: ${limit})` : ''}`);
             
             const response = await this.client.get(`/team/${teamId}/task?${params.toString()}`);
             
+            let tasks = response.data.tasks || [];
+            
+            // Apply limit if specified
+            if (limit && limit > 0) {
+                tasks = tasks.slice(0, limit);
+            }
+            
             return {
-                tasks: response.data.tasks || [],
-                lastPage: response.data.last_page || false
+                tasks: tasks,
+                lastPage: response.data.last_page || false,
+                totalFound: tasks.length,
+                limitApplied: limit
             };
         } catch (error) {
             console.error('Search tasks error:', error.response?.data);
