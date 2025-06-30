@@ -26,15 +26,6 @@ class ClickUpService {
         });
     }
 
-    async getTeams() {
-        try {
-            const response = await this.client.get('/team');
-            return response.data.teams;
-        } catch (error) {
-            throw new Error(`Failed to get teams: ${error.response?.data?.err || error.message}`);
-        }
-    }
-
     // Verify list access and get list details
     async verifyListAccess(listId) {
         try {
@@ -45,33 +36,6 @@ class ClickUpService {
         } catch (error) {
             console.error(`List verification failed:`, error.response?.data);
             throw new Error(`Cannot access list ${listId}: ${error.response?.data?.err || error.message}`);
-        }
-    }
-
-    async getSpaces(teamId = this.teamId) {
-        try {
-            const response = await this.client.get(`/team/${teamId}/space`);
-            return response.data.spaces;
-        } catch (error) {
-            throw new Error(`Failed to get spaces: ${error.response?.data?.err || error.message}`);
-        }
-    }
-
-    async getFolders(spaceId = this.spaceId) {
-        try {
-            const response = await this.client.get(`/space/${spaceId}/folder`);
-            return response.data.folders;
-        } catch (error) {
-            throw new Error(`Failed to get folders: ${error.response?.data?.err || error.message}`);
-        }
-    }
-
-    async getLists(folderId = this.folderId) {
-        try {
-            const response = await this.client.get(`/folder/${folderId}/list`);
-            return response.data.lists;
-        } catch (error) {
-            throw new Error(`Failed to get lists: ${error.response?.data?.err || error.message}`);
         }
     }
 
@@ -133,93 +97,6 @@ class ClickUpService {
         return priorityMap[priority?.toLowerCase()] || 3;
     }
 
-    // Helper method to extract List ID from ClickUp URL
-    static extractListIdFromUrl(url) {
-        try {
-            // Match patterns like: /v/l/rf3me-17585 or /v/l/123456
-            const match = url.match(/\/v\/l\/([^/?]+)/);
-            return match ? match[1] : null;
-        } catch (error) {
-            return null;
-        }
-    }
-
-    async getTaskStatuses(listId = this.listId) {
-        try {
-            const response = await this.client.get(`/list/${listId}`);
-            return response.data.statuses;
-        } catch (error) {
-            throw new Error(`Failed to get task statuses: ${error.response?.data?.err || error.message}`);
-        }
-    }
-
-    async getTeamMembers(teamId = this.teamId) {
-        try {
-            const response = await this.client.get(`/team/${teamId}`);
-            return response.data.team.members;
-        } catch (error) {
-            throw new Error(`Failed to get team members: ${error.response?.data?.err || error.message}`);
-        }
-    }
-
-    // Method to find all accessible lists
-    async findAllLists() {
-        try {
-            const teams = await this.getTeams();
-            const allLists = [];
-
-            for (const team of teams) {
-                try {
-                    const spaces = await this.getSpaces(team.id);
-
-                    for (const space of spaces) {
-                        try {
-                            // Try to get lists directly from space (folderless lists)
-                            const spaceResponse = await this.client.get(`/space/${space.id}/list`);
-                            if (spaceResponse.data.lists) {
-                                allLists.push(...spaceResponse.data.lists.map(list => ({
-                                    ...list,
-                                    teamName: team.name,
-                                    spaceName: space.name,
-                                    location: 'space'
-                                })));
-                            }
-                        } catch (error) {
-                            // Space might not have direct lists
-                        }
-
-                        try {
-                            // Get folders in space
-                            const folders = await this.getFolders(space.id);
-
-                            for (const folder of folders) {
-                                try {
-                                    const lists = await this.getLists(folder.id);
-                                    allLists.push(...lists.map(list => ({
-                                        ...list,
-                                        teamName: team.name,
-                                        spaceName: space.name,
-                                        folderName: folder.name,
-                                        location: 'folder'
-                                    })));
-                                } catch (error) {
-                                    // Folder might not have lists
-                                }
-                            }
-                        } catch (error) {
-                            // Space might not have folders
-                        }
-                    }
-                } catch (error) {
-                    console.warn(`Could not access team ${team.name}:`, error.message);
-                }
-            }
-
-            return allLists;
-        } catch (error) {
-            throw new Error(`Failed to find lists: ${error.message}`);
-        }
-    }
 
     // Search tasks using ClickUp's search API
     async searchTasks(query, options = {}) {
@@ -293,99 +170,6 @@ class ClickUpService {
         }
     }
 
-    // Get a specific task by ID
-    async getTask(taskId, includeSubtasks = false) {
-        try {
-            const params = new URLSearchParams();
-            params.append('include_subtasks', includeSubtasks);
-            
-            const response = await this.client.get(`/task/${taskId}?${params.toString()}`);
-            
-            // Add URL to task
-            const task = response.data;
-            if (task && task.id) {
-                task.url = `https://app.clickup.com/t/${task.id}`;
-            }
-            
-            return task;
-        } catch (error) {
-            console.error('Get task error:', error.response?.data);
-            throw new Error(`Failed to get task: ${error.response?.data?.err || error.message}`);
-        }
-    }
-
-    // Get tasks from a specific list
-    async getTasksFromList(listId, options = {}) {
-        try {
-            const {
-                archived = false,
-                page = 0,
-                orderBy = 'updated',
-                reverse = true,
-                subtasks = false,
-                statuses = [],
-                includeClosed = false,
-                assignees = [],
-                tags = [],
-                dueDateGt = null,
-                dueDateLt = null,
-                dateCreatedGt = null,
-                dateCreatedLt = null,
-                dateUpdatedGt = null,
-                dateUpdatedLt = null
-            } = options;
-
-            const params = new URLSearchParams();
-            
-            params.append('archived', archived);
-            params.append('page', page);
-            params.append('order_by', orderBy);
-            params.append('reverse', reverse);
-            params.append('subtasks', subtasks);
-            params.append('include_closed', includeClosed);
-
-            // Add array filters
-            if (statuses.length > 0) {
-                statuses.forEach(status => params.append('statuses[]', status));
-            }
-            
-            if (assignees.length > 0) {
-                assignees.forEach(assignee => params.append('assignees[]', assignee));
-            }
-            
-            if (tags.length > 0) {
-                tags.forEach(tag => params.append('tags[]', tag));
-            }
-
-            // Date filters
-            if (dueDateGt) params.append('due_date_gt', dueDateGt);
-            if (dueDateLt) params.append('due_date_lt', dueDateLt);
-            if (dateCreatedGt) params.append('date_created_gt', dateCreatedGt);
-            if (dateCreatedLt) params.append('date_created_lt', dateCreatedLt);
-            if (dateUpdatedGt) params.append('date_updated_gt', dateUpdatedGt);
-            if (dateUpdatedLt) params.append('date_updated_lt', dateUpdatedLt);
-
-            console.log(`Getting tasks from list ${listId}`);
-            
-            const response = await this.client.get(`/list/${listId}/task?${params.toString()}`);
-            
-            // Add URLs to tasks
-            const tasks = response.data.tasks || [];
-            tasks.forEach(task => {
-                if (task.id) {
-                    task.url = `https://app.clickup.com/t/${task.id}`;
-                }
-            });
-            
-            return {
-                tasks: tasks,
-                lastPage: response.data.last_page || false
-            };
-        } catch (error) {
-            console.error('Get tasks from list error:', error.response?.data);
-            throw new Error(`Failed to get tasks from list: ${error.response?.data?.err || error.message}`);
-        }
-    }
 }
 
 module.exports = new ClickUpService();

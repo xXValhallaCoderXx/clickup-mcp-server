@@ -95,13 +95,20 @@ Navigate to `http://localhost:3000`
 
 ## 💡 Usage
 
-### Creating Tickets
+### MCP Interface (Unified)
+1. **Visit `/mcp`**: Use the unified MCP interface at `http://localhost:3000/mcp`
+2. **Natural Language Prompt**: Describe what you want to do in plain English
+3. **AI Intent Detection**: The system automatically determines if you want to search or create
+4. **Automatic Processing**: Get results without choosing between search/create modes
+
+### Full Interface (Advanced)
+#### Creating Tickets
 1. **Describe your issue**: Write a natural language description of the problem or feature
 2. **Set priority**: Choose the appropriate priority level
 3. **Assign (optional)**: Add an assignee if needed
 4. **Create**: Click "Create Ticket" and let AI do the work!
 
-### Searching Tickets
+#### Searching Tickets
 1. **Switch to Search tab**: Click the "Search Tickets" tab
 2. **Enter natural language query**: Describe what you're looking for
 3. **Optional team ID**: Specify a team ID or use the default from your environment
@@ -124,27 +131,49 @@ switch between light and dark themes and have their preference saved
 across sessions.
 ```
 
-### Example Search Queries
+### MCP Interface Examples
 
-**Find bugs assigned to specific user**:
+**Search Examples**:
+```
+Find bugs assigned to john from last week
+Show me high priority tasks
+What tickets were created yesterday?
+Search for frontend issues tagged urgent
+```
+
+**Create Examples**:
+```
+Create a ticket for the login button not working
+The save feature is broken on mobile devices
+Add dark mode to the navigation bar
+Implement user authentication system
+```
+
+### Advanced Interface Examples
+
+**Search Queries**:
 ```
 bugs assigned to john
-```
-
-**Find high priority tasks from last week**:
-```
 high priority tasks created last week
-```
-
-**Find completed tickets with specific tags**:
-```
 completed tickets tagged frontend
-```
-
-**Find urgent issues**:
-```
 urgent tickets created today
 ```
+
+## 🤖 API Endpoints
+
+### Core MCP Endpoint
+- **POST `/mcp`** - Unified endpoint for both search and create operations
+  - **Body**: `{ "prompt": "natural language request", "teamId": "optional" }`
+  - **Response**: Automatically routes to search or create based on AI intent detection
+
+### Individual Endpoints  
+- **POST `/api/create-ticket`** - Create a new ticket
+- **POST `/api/search-tickets`** - Search existing tickets
+- **GET `/api/health`** - Health check
+
+### Web Interfaces
+- **GET `/`** - Full tabbed interface (create + search)
+- **GET `/mcp`** - Unified MCP interface
 
 ## 🏗️ Architecture
 

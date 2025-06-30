@@ -24,14 +24,6 @@ class TicketCreator {
         // Clear button
         this.clearBtn.addEventListener('click', () => this.clearForm());
         
-        // Test connection button
-        document.getElementById('test-connection').addEventListener('click', () => this.testConnection());
-        
-        // Context management
-        document.getElementById('manage-context').addEventListener('click', () => this.showContextModal());
-        document.getElementById('close-context').addEventListener('click', () => this.hideContextModal());
-        document.getElementById('save-context').addEventListener('click', () => this.saveContext());
-        document.getElementById('reset-context').addEventListener('click', () => this.resetContext());
 
         // Tab navigation
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -53,11 +45,6 @@ class TicketCreator {
             }
         });
         
-        document.getElementById('context-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'context-modal') {
-                this.hideContextModal();
-            }
-        });
         
         // Auto-resize textarea
         this.descriptionTextarea.addEventListener('input', () => this.autoResizeTextarea());
@@ -121,25 +108,6 @@ class TicketCreator {
         }
     }
 
-    async testConnection() {
-        this.updateStatus('checking', 'Testing...');
-        
-        try {
-            const response = await fetch('/api/test-clickup');
-            const result = await response.json();
-            
-            if (response.ok && result.success) {
-                this.updateStatus('connected', 'ClickUp Connected');
-                this.showNotification('ClickUp connection successful!', 'success');
-            } else {
-                this.updateStatus('error', 'ClickUp Error');
-                this.showNotification('ClickUp connection failed: ' + result.error, 'error');
-            }
-        } catch (error) {
-            this.updateStatus('error', 'Connection Failed');
-            this.showNotification('Connection test failed', 'error');
-        }
-    }
 
     updateStatus(status, text) {
         this.statusDot.className = `status-dot ${status}`;
@@ -304,126 +272,6 @@ class TicketCreator {
         textarea.style.height = Math.max(120, textarea.scrollHeight) + 'px';
     }
 
-    async showContextModal() {
-        document.getElementById('context-modal').style.display = 'block';
-        document.body.style.overflow = 'hidden';
-        await this.loadContext();
-    }
-
-    hideContextModal() {
-        document.getElementById('context-modal').style.display = 'none';
-        document.body.style.overflow = 'auto';
-    }
-
-    async loadContext() {
-        try {
-            const response = await fetch('/api/context');
-            const result = await response.json();
-            
-            if (result.success) {
-                document.getElementById('context-textarea').value = result.context;
-                this.updateContextStats(result.stats);
-            } else {
-                this.showNotification('Failed to load context', 'error');
-            }
-        } catch (error) {
-            console.error('Error loading context:', error);
-            this.showNotification('Error loading context', 'error');
-        }
-    }
-
-    async saveContext() {
-        const contextContent = document.getElementById('context-textarea').value;
-        const saveBtn = document.getElementById('save-context');
-        
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-        
-        try {
-            const response = await fetch('/api/context', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ context: contextContent })
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                this.showNotification('Context saved successfully!', 'success');
-                await this.loadContext(); // Refresh stats
-            } else {
-                this.showNotification('Failed to save context: ' + result.error, 'error');
-            }
-        } catch (error) {
-            console.error('Error saving context:', error);
-            this.showNotification('Error saving context', 'error');
-        } finally {
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Context';
-        }
-    }
-
-    async resetContext() {
-        if (!confirm('Are you sure you want to reset to the default context? This will overwrite your current context.')) {
-            return;
-        }
-        
-        try {
-            // Load the default context template
-            const defaultContext = `# Company & Project Context
-
-## Company Information
-**Company Name:** Your Company Name
-**Industry:** Technology/SaaS/E-commerce/etc.
-**Team Size:** 10-50 developers
-**Development Methodology:** Agile/Scrum/Kanban
-
-## Tech Stack
-### Frontend
-- React/Vue/Angular
-- TypeScript
-- CSS Framework (Tailwind/Bootstrap)
-
-### Backend
-- Node.js/Python/Java
-- Database (PostgreSQL/MongoDB)
-- API (REST/GraphQL)
-
-## Current Projects
-### Main Product
-- **Name:** Your main application
-- **Description:** Brief description
-- **Key Features:** List main features
-- **Current Phase:** Development status
-
-## Development Standards
-- Code review required
-- Automated testing
-- CI/CD pipeline
-- Documentation standards
-
-*Edit this template with your actual company information.*`;
-
-            document.getElementById('context-textarea').value = defaultContext;
-            this.showNotification('Context reset to default template', 'success');
-        } catch (error) {
-            this.showNotification('Error resetting context', 'error');
-        }
-    }
-
-    updateContextStats(stats) {
-        document.getElementById('stat-sections').textContent = stats.totalSections || 0;
-        document.getElementById('stat-characters').textContent = (stats.totalCharacters || 0).toLocaleString();
-        
-        if (stats.lastModified) {
-            const date = new Date(stats.lastModified);
-            document.getElementById('stat-updated').textContent = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-        } else {
-            document.getElementById('stat-updated').textContent = 'Never';
-        }
-    }
 
     switchTab(tabName) {
         // Update tab buttons
@@ -778,21 +626,9 @@ document.addEventListener('keydown', (e) => {
     // Escape to close modal
     if (e.key === 'Escape') {
         const helpModal = document.getElementById('help-modal');
-        const contextModal = document.getElementById('context-modal');
         
         if (helpModal && helpModal.style.display === 'block') {
             document.getElementById('close-help').click();
-        } else if (contextModal && contextModal.style.display === 'block') {
-            document.getElementById('close-context').click();
-        }
-    }
-    
-    // Ctrl/Cmd + S to save context when modal is open
-    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        const contextModal = document.getElementById('context-modal');
-        if (contextModal && contextModal.style.display === 'block') {
-            e.preventDefault();
-            document.getElementById('save-context').click();
         }
     }
 });

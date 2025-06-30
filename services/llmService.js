@@ -104,6 +104,48 @@ class LLMService {
         }
     }
 
+    async determineIntent(prompt) {
+        try {
+            const intentPrompt = this.buildIntentPrompt(prompt);
+            
+            const response = await this.client.post('/chat/completions', {
+                model: this.model,
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'You are a helpful assistant that determines user intent for ticket management. Always respond with valid JSON.'
+                    },
+                    {
+                        role: 'user',
+                        content: intentPrompt
+                    }
+                ],
+                temperature: 0.1,
+                max_tokens: 200
+            });
+
+            const content = response.data.choices[0].message.content;
+            
+            // Try to parse JSON response
+            try {
+                return JSON.parse(content);
+            } catch (parseError) {
+                // If JSON parsing fails, extract JSON from the response
+                const jsonMatch = content.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    return JSON.parse(jsonMatch[0]);
+                }
+                throw new Error('Failed to parse LLM response as JSON');
+            }
+            
+        } catch (error) {
+            console.error('LLM Intent Service Error:', error.response?.data || error.message);
+            
+            // Fallback: return a basic intent structure if LLM fails
+            return this.createFallbackIntent(prompt);
+        }
+    }
+
     buildPrompt(description) {
         const contextPrompt = contextService.buildContextPrompt();
         
@@ -205,6 +247,55 @@ EXAMPLES:
 - "completed tickets tagged frontend" results in {"query": "tickets", "statuses": ["complete", "done"], "tags": ["frontend"]}
 
 Return ONLY the JSON object, no explanations.`;
+    }
+
+    buildIntentPrompt(prompt) {
+        return `
+Analyze the following user prompt and determine if they want to SEARCH for existing tickets or CREATE a new ticket.
+
+USER PROMPT: "${prompt}"
+
+Return ONLY a JSON object with this structure:
+
+{
+    "action": "search|create",
+    "confidence": 0.0-1.0,
+    "reasoning": "brief explanation",
+    "priority": "urgent|high|normal|low" or null,
+    "assignee": "username" or null
+}
+
+INTENT CLASSIFICATION RULES:
+
+**SEARCH Intent** - User wants to find existing tickets:
+- Keywords: "find", "search", "show me", "list", "get", "what", "which", "who has", "assigned to"
+- Examples: 
+  - "find bugs assigned to john"
+  - "show me high priority tasks"
+  - "what tickets were created last week"
+  - "search for frontend issues"
+
+**CREATE Intent** - User wants to create a new ticket:
+- Keywords: "create", "add", "new", "make", "build", "implement", "fix", "bug:", "issue:", "feature:"
+- Describes a problem, feature request, or task
+- Examples:
+  - "create a ticket for login bug"
+  - "the save button is broken"
+  - "add dark mode to the app"
+  - "implement user authentication"
+
+**Priority Extraction** (if mentioned):
+- "urgent", "critical", "asap" leads to urgent
+- "high", "important" leads to high  
+- "low", "minor" leads to low
+- default leads to normal
+
+**Assignee Extraction** (if mentioned):
+- Look for "assign to X", "for X", "@X"
+
+If unclear, default to "create" with confidence < 0.7.
+
+Return ONLY the JSON object.`;
     }
 
     createFallbackStructure(description) {
@@ -323,6 +414,55 @@ Return ONLY the JSON object, no explanations.`;
         }
 
         return result;
+    }
+
+    createFallbackIntent(prompt) {
+        const words = prompt.toLowerCase();
+        
+        // Simple keyword-based intent detection
+        const searchKeywords = ['find', 'search', 'show', 'list', 'get', 'what', 'which', 'who has', 'assigned to'];
+        const createKeywords = ['create', 'add', 'new', 'make', 'build', 'implement', 'fix', 'bug', 'issue', 'feature', 'broken', 'error'];
+        
+        const searchScore = searchKeywords.reduce((score, keyword) => 
+            words.includes(keyword) ? score + 1 : score, 0);
+        const createScore = createKeywords.reduce((score, keyword) => 
+            words.includes(keyword) ? score + 1 : score, 0);
+        
+        let action = 'create'; // Default to create
+        let confidence = 0.5;
+        
+        if (searchScore > createScore) {
+            action = 'search';
+            confidence = Math.min(0.9, 0.5 + (searchScore * 0.1));
+        } else if (createScore > 0) {
+            action = 'create';
+            confidence = Math.min(0.9, 0.5 + (createScore * 0.1));
+        }
+        
+        // Extract priority
+        let priority = null;
+        if (words.includes('urgent') || words.includes('critical') || words.includes('asap')) {
+            priority = 'urgent';
+        } else if (words.includes('high') || words.includes('important')) {
+            priority = 'high';
+        } else if (words.includes('low') || words.includes('minor')) {
+            priority = 'low';
+        }
+        
+        // Extract assignee (simple pattern matching)
+        let assignee = null;
+        const assigneeMatch = prompt.match(/(?:assign(?:ed)?\s+to|for|@)\s+(\w+)/i);
+        if (assigneeMatch) {
+            assignee = assigneeMatch[1];
+        }
+        
+        return {
+            action,
+            confidence,
+            reasoning: `Fallback classification based on keyword analysis. Search keywords: ${searchScore}, Create keywords: ${createScore}`,
+            priority,
+            assignee
+        };
     }
 
     async testConnection() {

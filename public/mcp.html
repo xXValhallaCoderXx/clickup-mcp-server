@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClickUp MCP Interface</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #1a1a1a;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 12px;
+        }
+
+        .header h1 i {
+            color: #667eea;
+            margin-right: 16px;
+        }
+
+        .header p {
+            font-size: 1.125rem;
+            color: #64748b;
+            font-weight: 400;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .form-group label i {
+            margin-right: 8px;
+            color: #667eea;
+        }
+
+        .prompt-input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .prompt-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .team-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .team-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-help {
+            font-size: 0.75rem;
+            color: #71717a;
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 32px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-section {
+            margin-top: 32px;
+            padding: 24px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            display: none;
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .result-header h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .action-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .action-badge.search {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .action-badge.create {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .result-content {
+            color: #475569;
+            line-height: 1.6;
+        }
+
+        .search-results {
+            margin-top: 16px;
+        }
+
+        .search-result-item {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .search-result-title {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .search-result-title a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .search-result-title a:hover {
+            color: #667eea;
+        }
+
+        .search-result-meta {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .meta-tag {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .ticket-preview {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 16px;
+        }
+
+        .ticket-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 12px;
+        }
+
+        .ticket-meta {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+        }
+
+        .success-message {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+        }
+
+        .footer-link {
+            text-align: center;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .footer-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .footer-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-robot"></i>ClickUp MCP</h1>
+            <p>Unified interface for ticket creation and search using natural language</p>
+        </div>
+
+        <form id="mcp-form">
+            <div class="form-group">
+                <label for="prompt">
+                    <i class="fas fa-comment-dots"></i> Natural Language Prompt
+                </label>
+                <textarea 
+                    id="prompt" 
+                    name="prompt" 
+                    class="prompt-input"
+                    placeholder="Tell me what you want to do in natural language:
+
+Examples:
+• 'Find bugs assigned to john from last week'
+• 'Show me high priority tasks'
+• 'Create a ticket for the login button not working'
+• 'The save feature is broken on mobile devices'
+• 'Search for frontend tickets tagged urgent'"
+                    required
+                ></textarea>
+                <div class="form-help">
+                    The AI will automatically determine if you want to search for tickets or create a new one.
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="team-id">
+                    <i class="fas fa-users"></i> Team ID (Optional)
+                </label>
+                <input 
+                    type="text" 
+                    id="team-id" 
+                    name="teamId" 
+                    class="team-input"
+                    placeholder="Leave empty to use default team"
+                >
+                <div class="form-help">
+                    Only required for search operations. Will use CLICKUP_TEAM_ID from environment if not provided.
+                </div>
+            </div>
+
+            <button type="submit" id="submit-btn" class="submit-btn">
+                <i class="fas fa-magic"></i>
+                <span>Process Request</span>
+                <div class="spinner" id="spinner"></div>
+            </button>
+        </form>
+
+        <div class="result-section" id="result-section">
+            <div class="result-content" id="result-content">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+
+        <div class="footer-link">
+            <a href="/">← Back to Full Interface</a>
+        </div>
+    </div>
+
+    <script>
+        class MCPInterface {
+            constructor() {
+                this.form = document.getElementById('mcp-form');
+                this.submitBtn = document.getElementById('submit-btn');
+                this.spinner = document.getElementById('spinner');
+                this.resultSection = document.getElementById('result-section');
+                this.resultContent = document.getElementById('result-content');
+                
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+            }
+
+            async handleSubmit(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this.form);
+                const data = {
+                    prompt: formData.get('prompt').trim(),
+                    teamId: formData.get('teamId').trim() || null
+                };
+
+                if (!data.prompt) {
+                    this.showError('Please provide a prompt.');
+                    return;
+                }
+
+                this.setLoading(true);
+                this.hideResults();
+
+                try {
+                    const response = await fetch('/mcp', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        this.showResults(result);
+                    } else {
+                        this.showError(result.error || 'Failed to process request');
+                    }
+                } catch (error) {
+                    console.error('Error processing request:', error);
+                    this.showError('Network error. Please check your connection and try again.');
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            setLoading(loading) {
+                this.submitBtn.disabled = loading;
+                
+                if (loading) {
+                    this.submitBtn.querySelector('span').textContent = 'Processing...';
+                    this.spinner.style.display = 'block';
+                } else {
+                    this.submitBtn.querySelector('span').textContent = 'Process Request';
+                    this.spinner.style.display = 'none';
+                }
+            }
+
+            showResults(result) {
+                let html = `
+                    <div class="result-header">
+                        <h3><i class="fas fa-${result.action === 'search' ? 'search' : 'plus'}"></i> ${result.action === 'search' ? 'Search Results' : 'Ticket Created'}</h3>
+                        <span class="action-badge ${result.action}">${result.action}</span>
+                    </div>
+                `;
+
+                if (result.action === 'search') {
+                    html += this.formatSearchResults(result);
+                } else if (result.action === 'create') {
+                    html += this.formatCreateResults(result);
+                }
+
+                this.resultContent.innerHTML = html;
+                this.resultSection.style.display = 'block';
+                this.resultSection.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            formatSearchResults(result) {
+                const { results, totalFound, searchParams } = result;
+                
+                let html = `
+                    <div class="success-message">
+                        <strong>Found ${totalFound} ticket${totalFound !== 1 ? 's' : ''}</strong> matching your query.
+                    </div>
+                `;
+
+                if (results && results.length > 0) {
+                    html += '<div class="search-results">';
+                    
+                    results.forEach(task => {
+                        const createdDate = new Date(parseInt(task.date_created)).toLocaleDateString();
+                        
+                        html += `
+                            <div class="search-result-item">
+                                <div class="search-result-title">
+                                    ${task.url ? `<a href="${task.url}" target="_blank">${task.name}</a>` : task.name}
+                                </div>
+                                <div class="search-result-meta">
+                                    <span class="meta-tag" style="background: #f1f5f9; color: #475569;">
+                                        ${task.status?.status || 'Unknown'}
+                                    </span>
+                                    ${task.priority ? `<span class="meta-tag" style="background: #fef3c7; color: #92400e;">
+                                        Priority ${this.mapPriorityName(task.priority.priority)}
+                                    </span>` : ''}
+                                    <span class="meta-tag" style="background: #e0e7ff; color: #3730a3;">
+                                        Created ${createdDate}
+                                    </span>
+                                </div>
+                                ${task.description ? `<div style="margin-top: 8px; color: #64748b; font-size: 0.875rem;">
+                                    ${this.truncateText(task.description, 150)}
+                                </div>` : ''}
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                } else {
+                    html += `
+                        <div style="text-align: center; padding: 40px; color: #64748b;">
+                            <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.5;"></i>
+                            <p>No tickets found matching your criteria.</p>
+                        </div>
+                    `;
+                }
+
+                return html;
+            }
+
+            formatCreateResults(result) {
+                const { ticket, processed } = result;
+                
+                let html = `
+                    <div class="success-message">
+                        <strong>Ticket created successfully!</strong> 
+                        ${ticket.url ? `<a href="${ticket.url}" target="_blank" style="margin-left: 8px;">View in ClickUp →</a>` : ''}
+                    </div>
+                    
+                    <div class="ticket-preview">
+                        <div class="ticket-title">${processed.title || 'Untitled Ticket'}</div>
+                        
+                        <div class="ticket-meta">
+                            <span class="meta-tag" style="background: #f0f9ff; color: #0284c7;">
+                                ${(processed.type || 'task').toUpperCase()}
+                            </span>
+                            <span class="meta-tag" style="background: #fef3c7; color: #92400e;">
+                                ${(processed.priority || 'normal').toUpperCase()} PRIORITY
+                            </span>
+                            ${processed.estimatedComplexity ? `<span class="meta-tag" style="background: #f3e8ff; color: #7c3aed;">
+                                ${processed.estimatedComplexity.toUpperCase()} COMPLEXITY
+                            </span>` : ''}
+                        </div>
+
+                        ${processed.summary ? `
+                            <div style="margin-bottom: 16px;">
+                                <strong>Summary:</strong> ${processed.summary}
+                            </div>
+                        ` : ''}
+
+                        ${processed.acceptanceCriteria && processed.acceptanceCriteria.length > 0 ? `
+                            <div style="margin-bottom: 16px;">
+                                <strong>Acceptance Criteria:</strong>
+                                <ul style="margin-top: 8px; padding-left: 20px;">
+                                    ${processed.acceptanceCriteria.map(criteria => `<li>${criteria}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+
+                        ${processed.tags && processed.tags.length > 0 ? `
+                            <div style="margin-top: 16px;">
+                                ${processed.tags.map(tag => `<span class="meta-tag" style="background: #f1f5f9; color: #475569; margin-right: 8px;">#${tag}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+
+                return html;
+            }
+
+            showError(message) {
+                const html = `
+                    <div class="error-message">
+                        <strong>Error:</strong> ${message}
+                    </div>
+                `;
+                
+                this.resultContent.innerHTML = html;
+                this.resultSection.style.display = 'block';
+                this.resultSection.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            hideResults() {
+                this.resultSection.style.display = 'none';
+            }
+
+            mapPriorityName(priority) {
+                const priorityMap = {
+                    '1': 'Urgent',
+                    '2': 'High', 
+                    '3': 'Normal',
+                    '4': 'Low'
+                };
+                return priorityMap[priority] || 'Normal';
+            }
+
+            truncateText(text, maxLength) {
+                if (!text) return '';
+                if (text.length <= maxLength) return text;
+                return text.substring(0, maxLength) + '...';
+            }
+        }
+
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new MCPInterface();
+        });
+    </script>
+</body>
+</html>

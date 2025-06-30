@@ -781,10 +781,6 @@ body {
     margin-left: 8px;
 }
 
-.workflow-status.n8n {
-    background: #1e40af;
-    color: #dbeafe;
-}
 
 .workflow-status.direct {
     background: #374151;
