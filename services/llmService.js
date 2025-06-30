@@ -1,28 +1,29 @@
-const axios = require('axios');
-const contextService = require('./contextService');
+const axios = require("axios");
+const contextService = require("./contextService");
 
 class LLMService {
     constructor() {
         this.apiKey = process.env.OPENROUTER_API_KEY;
-        this.baseURL = 'https://openrouter.ai/api/v1';
-        
+        this.baseURL = "https://openrouter.ai/api/v1";
+
         // Using more reliable free models from OpenRouter
         this.models = [
-            'mistralai/mistral-small-3.2-24b-instruct:free',
-            'minimax/minimax-m1:extended',
-            'deepseek/deepseek-r1-0528-qwen3-8b:free'
+            // 'mistralai/mistral-small-3.2-24b-instruct:free',
+            //   "minimax/minimax-m1:extended",
+            "google/gemini-2.0-flash-001",
+            // "deepseek/deepseek-r1-0528-qwen3-8b:free",
         ];
         this.currentModelIndex = 0;
-        
+
         this.client = axios.create({
             baseURL: this.baseURL,
             headers: {
-                'Authorization': `Bearer ${this.apiKey}`,
-                'Content-Type': 'application/json',
-                'HTTP-Referer': 'http://localhost:3000', // Required for some free models
-                'X-Title': 'ClickUp MCP Server'
+                Authorization: `Bearer ${this.apiKey}`,
+                "Content-Type": "application/json",
+                "HTTP-Referer": "http://localhost:3000", // Required for some free models
+                "X-Title": "ClickUp MCP Server",
             },
-            timeout: 30000 // 30 second timeout
+            timeout: 30000, // 30 second timeout
         });
     }
 
@@ -36,123 +37,134 @@ class LLMService {
     }
 
     parseJsonResponse(content) {
-        // Try direct JSON parsing first
+        console.log("CONTENT: ", content);
+        
+        // Step 1: Try direct JSON parsing first
         try {
             const parsed = JSON.parse(content);
-            // Validate the structure
-            if (parsed && typeof parsed === 'object' && parsed.action) {
+            // Validate the structure - check for both intent and search response structures
+            if (parsed && typeof parsed === "object" && (parsed.action || parsed.query !== undefined)) {
                 return parsed;
             }
         } catch (parseError) {
             console.log("Direct JSON Parse Error:", parseError.message);
         }
 
-        // Clean the content more aggressively
-        let cleanContent = content
-            // Remove markdown code blocks
-            .replace(/```json\s*/g, '')
-            .replace(/\s*```/g, '')
-            .replace(/```/g, '')
-            // Remove common problematic characters (non-ASCII)
-            .replace(/[^\x00-\x7F]/g, '')
+        // Step 2: Clean markdown and try again
+        let cleanContent = content;
+        
+        // Remove markdown code blocks more aggressively
+        cleanContent = cleanContent
+            .replace(/^```json\s*/gm, '')  // Remove opening ```json
+            .replace(/^```\s*/gm, '')      // Remove opening ```
+            .replace(/\s*```$/gm, '')      // Remove closing ```
+            .replace(/```/g, '')           // Remove any remaining ```
             .trim();
 
-        // Try to find JSON object in the cleaned response
+        console.log("CLEANED CONTENT:", cleanContent);
+
+        // Step 3: Try parsing the cleaned content
+        try {
+            const parsed = JSON.parse(cleanContent);
+            if (parsed && typeof parsed === "object" && (parsed.action || parsed.query !== undefined)) {
+                console.log("Successfully parsed cleaned JSON");
+                return parsed;
+            }
+        } catch (cleanParseError) {
+            console.log("Cleaned JSON Parse Error:", cleanParseError.message);
+        }
+
+        // Step 4: Extract JSON object from mixed content
         const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             let jsonString = jsonMatch[0];
+            console.log("EXTRACTED JSON STRING:", jsonString);
 
             try {
                 const parsed = JSON.parse(jsonString);
-                if (parsed && typeof parsed === 'object' && parsed.action) {
+                if (parsed && typeof parsed === "object" && (parsed.action || parsed.query !== undefined)) {
+                    console.log("Successfully parsed extracted JSON");
                     return parsed;
                 }
-            } catch (secondParseError) {
-                console.log("Second JSON Parse Error:", secondParseError.message);
+            } catch (extractParseError) {
+                console.log("Extract JSON Parse Error:", extractParseError.message);
+            }
+        }
 
-                // Try to fix common JSON issues
-                jsonString = jsonString
-                    .replace(/'/g, '"')  // Replace single quotes with double quotes
-                    .replace(/(\w+):/g, '"$1":')  // Add quotes around keys
-                    .replace(/,\s*}/g, '}')  // Remove trailing commas
-                    .replace(/,\s*]/g, ']') // Remove trailing commas in arrays
-                    .replace(/"\s*:\s*([^",\{\[\]]+)\s*([,\}])/g, '": "$1"$2') // Quote unquoted string values
-                    .replace(/": "(\d+)"([,\}])/g, '": $1$2') // Unquote numeric values
-                    .replace(/": "(true|false|null)"([,\}])/g, '": $1$2'); // Unquote boolean/null values
+        // Step 5: Manual extraction for intent responses only
+        if (content.includes('"action"')) {
+            try {
+                const actionMatch = content.match(/"action"\s*:\s*"([^"]+)"/);
+                const confidenceMatch = content.match(/"confidence"\s*:\s*([0-9.]+)/);
+                const reasoningMatch = content.match(/"reasoning"\s*:\s*"([^"]+)"/);
+                const priorityMatch = content.match(/"priority"\s*:\s*"?([^",\}]+)"?/);
+                const assigneeMatch = content.match(/"assignee"\s*:\s*"?([^",\}]+)"?/);
 
-                try {
-                    const parsed = JSON.parse(jsonString);
-                    if (parsed && typeof parsed === 'object' && parsed.action) {
-                        return parsed;
-                    }
-                } catch (finalParseError) {
-                    console.log("Final JSON Parse Error:", finalParseError.message);
+                if (actionMatch) {
+                    const result = {
+                        action: actionMatch[1],
+                        confidence: confidenceMatch ? parseFloat(confidenceMatch[1]) : 0.7,
+                        reasoning: reasoningMatch ? reasoningMatch[1] : "Extracted from malformed JSON",
+                        priority: priorityMatch && priorityMatch[1] !== "null" ? priorityMatch[1] : null,
+                        assignee: assigneeMatch && assigneeMatch[1] !== "null" ? assigneeMatch[1] : null,
+                    };
+                    console.log("Manually extracted intent JSON:", result);
+                    return result;
                 }
+            } catch (extractError) {
+                console.log("Manual extraction failed:", extractError.message);
             }
         }
 
-        // Last resort: try to extract key-value pairs manually
-        try {
-            const actionMatch = content.match(/"action"\s*:\s*"([^"]+)"/);
-            const confidenceMatch = content.match(/"confidence"\s*:\s*([0-9.]+)/);
-            const reasoningMatch = content.match(/"reasoning"\s*:\s*"([^"]+)"/);
-            const priorityMatch = content.match(/"priority"\s*:\s*"?([^",\}]+)"?/);
-            const assigneeMatch = content.match(/"assignee"\s*:\s*"?([^",\}]+)"?/);
-
-            if (actionMatch) {
-                const result = {
-                    action: actionMatch[1],
-                    confidence: confidenceMatch ? parseFloat(confidenceMatch[1]) : 0.7,
-                    reasoning: reasoningMatch ? reasoningMatch[1] : 'Extracted from malformed JSON',
-                    priority: priorityMatch && priorityMatch[1] !== 'null' ? priorityMatch[1] : null,
-                    assignee: assigneeMatch && assigneeMatch[1] !== 'null' ? assigneeMatch[1] : null
-                };
-                console.log("Manually extracted JSON:", result);
-                return result;
-            }
-        } catch (extractError) {
-            console.log("Manual extraction failed:", extractError.message);
-        }
-
+        console.log("All JSON parsing attempts failed");
         return null;
     }
 
     async processDescription(description) {
-        // First check if we have an API key
+        // Check if we have an API key
         if (!this.apiKey) {
-            console.log("No OpenRouter API key found, using fallback description processing");
-            return this.createFallbackStructure(description);
+            throw new Error(
+                "LLM service unavailable: No OpenRouter API key configured"
+            );
         }
 
         try {
             const prompt = this.buildPrompt(description);
-            
-            const response = await this.client.post('/chat/completions', {
+
+            const response = await this.client.post("/chat/completions", {
                 model: this.getCurrentModel(),
                 messages: [
                     {
-                        role: 'system',
-                        content: 'You are a helpful assistant that extracts structured information from issue descriptions to create well-formatted tickets. You MUST respond with ONLY valid JSON, no explanations or markdown formatting.'
+                        role: "system",
+                        content:
+                            "You are a helpful assistant that extracts structured information from issue descriptions to create well-formatted tickets. CRITICAL: Respond with ONLY raw JSON - no markdown code blocks, no backticks, no explanations, just the JSON object.",
                     },
                     {
-                        role: 'user',
-                        content: prompt
-                    }
+                        role: "user",
+                        content: prompt,
+                    },
                 ],
                 temperature: 0.3,
-                max_tokens: 1000
+                max_tokens: 1000,
             });
 
             // Check if we got a valid response
-            if (!response.data || !response.data.choices || !response.data.choices[0] || !response.data.choices[0].message) {
-                throw new Error('Invalid response structure from LLM API');
+            if (
+                !response.data ||
+                !response.data.choices ||
+                !response.data.choices[0] ||
+                !response.data.choices[0].message
+            ) {
+                throw new Error(
+                    "LLM service unavailable: Invalid response structure from API"
+                );
             }
 
             const content = response.data.choices[0].message.content?.trim();
 
             // Check for empty content
             if (!content) {
-                throw new Error('Empty response from LLM API');
+                throw new Error("LLM service unavailable: Empty response from API");
             }
 
             // Try to parse JSON response using the shared parser
@@ -160,76 +172,108 @@ class LLMService {
             if (result) {
                 return result;
             }
-            
-            throw new Error('Failed to parse LLM response as JSON');
 
+            throw new Error(
+                "LLM service unavailable: Failed to parse response as valid JSON"
+            );
         } catch (error) {
-            console.error('LLM Service Error:', error.response?.data || error.message);
-            
-            // Fallback: return a basic structure if LLM fails
-            return this.createFallbackStructure(description);
+            console.error(
+                "LLM Service Error:",
+                error.response?.data || error.message
+            );
+
+            // Re-throw with service unavailable message
+            if (error.message.startsWith("LLM service unavailable:")) {
+                throw error;
+            }
+            throw new Error(
+                "LLM service unavailable: " +
+                (error.response?.data?.error?.message || error.message)
+            );
         }
     }
 
     async processSearchQuery(searchQuery) {
-        // First check if we have an API key
+        // Check if we have an API key
         if (!this.apiKey) {
-            console.log("No OpenRouter API key found, using fallback search processing");
-            return this.createFallbackSearchStructure(searchQuery);
+            throw new Error(
+                "LLM service unavailable: No OpenRouter API key configured"
+            );
         }
 
         try {
             const prompt = this.buildSearchPrompt(searchQuery);
-            
-            const response = await this.client.post('/chat/completions', {
+
+
+            const response = await this.client.post("/chat/completions", {
                 model: this.getCurrentModel(),
                 messages: [
                     {
-                        role: 'system',
-                        content: 'You are a helpful assistant that converts natural language search queries into structured search parameters for ClickUp tasks. You MUST respond with ONLY valid JSON, no explanations or markdown formatting.'
+                        role: "system",
+                        content:
+                            "You are a helpful assistant that converts natural language search queries into structured search parameters for ClickUp tasks. CRITICAL: Respond with ONLY raw JSON - no markdown code blocks, no backticks, no explanations, just the JSON object.",
                     },
                     {
-                        role: 'user',
-                        content: prompt
-                    }
+                        role: "user",
+                        content: prompt,
+                    },
                 ],
                 temperature: 0.1,
-                max_tokens: 500
+                max_tokens: 500,
             });
 
             // Check if we got a valid response
-            if (!response.data || !response.data.choices || !response.data.choices[0] || !response.data.choices[0].message) {
-                throw new Error('Invalid response structure from LLM API');
+            if (
+                !response.data ||
+                !response.data.choices ||
+                !response.data.choices[0] ||
+                !response.data.choices[0].message
+            ) {
+                throw new Error(
+                    "LLM service unavailable: Invalid response structure from API"
+                );
             }
 
             const content = response.data.choices[0].message.content?.trim();
+            console.log("CONTENT: ", content);
 
             // Check for empty content
             if (!content) {
-                throw new Error('Empty response from LLM API');
+                throw new Error("LLM service unavailable: Empty response from API");
             }
-            
+
             // Try to parse JSON response using the shared parser
             const result = this.parseJsonResponse(content);
             if (result) {
                 return result;
             }
 
-            throw new Error('Failed to parse LLM response as JSON');
-            
+            throw new Error(
+                "LLM service unavailable: Failed to parse response as valid JSON"
+            );
         } catch (error) {
-            console.error('LLM Search Service Error:', error.response?.data || error.message);
-            
-            // Fallback: return a basic search structure if LLM fails
-            return this.createFallbackSearchStructure(searchQuery);
+            console.error(
+                "LLM Search Service Error:",
+                error.response?.data || error.message
+            );
+
+            // Re-throw with service unavailable message
+            if (error.message.startsWith("LLM service unavailable:")) {
+                throw error;
+            }
+            throw new Error(
+                "LLM service unavailable: " +
+                (error.response?.data?.error?.message || error.message)
+            );
         }
     }
 
     async determineIntent(prompt) {
-        // First check if we have an API key
+        // Check if we have an API key
         if (!this.apiKey) {
-            console.log("No OpenRouter API key found, using fallback intent detection");
-            return this.createFallbackIntent(prompt);
+            throw new Error(
+                "LLM service unavailable: No OpenRouter API key configured"
+            );
         }
 
         let lastError = null;
@@ -242,25 +286,31 @@ class LLMService {
 
                 const intentPrompt = this.buildIntentPrompt(prompt);
 
-                const response = await this.client.post('/chat/completions', {
+                const response = await this.client.post("/chat/completions", {
                     model: currentModel,
                     messages: [
                         {
-                            role: 'system',
-                            content: 'You are a helpful assistant that determines user intent for ticket management. You MUST respond with ONLY valid JSON, no explanations or markdown formatting.'
+                            role: "system",
+                            content:
+                                "You are a helpful assistant that determines user intent for ticket management. CRITICAL: Respond with ONLY raw JSON - no markdown code blocks, no backticks, no explanations, just the JSON object.",
                         },
                         {
-                            role: 'user',
-                            content: intentPrompt
-                        }
+                            role: "user",
+                            content: intentPrompt,
+                        },
                     ],
                     temperature: 0.1,
-                    max_tokens: 200
+                    max_tokens: 200,
                 });
 
                 // Check if we got a valid response
-                if (!response.data || !response.data.choices || !response.data.choices[0] || !response.data.choices[0].message) {
-                    throw new Error('Invalid response structure from LLM API');
+                if (
+                    !response.data ||
+                    !response.data.choices ||
+                    !response.data.choices[0] ||
+                    !response.data.choices[0].message
+                ) {
+                    throw new Error("Invalid response structure from LLM API");
                 }
 
                 const content = response.data.choices[0].message.content?.trim();
@@ -268,7 +318,7 @@ class LLMService {
 
                 // Check for empty content
                 if (!content) {
-                    throw new Error('Empty response from LLM API');
+                    throw new Error("Empty response from LLM API");
                 }
 
                 // Try to parse JSON response
@@ -278,27 +328,32 @@ class LLMService {
                     return result;
                 }
 
-                throw new Error('Failed to parse JSON response');
-
+                throw new Error("Failed to parse JSON response");
             } catch (error) {
                 lastError = error;
-                console.error(`Model ${this.getCurrentModel()} failed:`, error.response?.data || error.message);
+                console.error(
+                    `Model ${this.getCurrentModel()} failed:`,
+                    error.response?.data || error.message
+                );
 
                 // Try next model
                 this.tryNextModel();
             }
         }
 
-        console.error('All LLM models failed for intent detection, using fallback');
-        console.error('Last error:', lastError?.message);
+        console.error("All LLM models failed for intent detection");
+        console.error("Last error:", lastError?.message);
 
-        // Fallback: return a basic intent structure if all LLMs fail
-        return this.createFallbackIntent(prompt);
+        // No fallback - throw error
+        throw new Error(
+            "LLM service unavailable: All models failed to determine intent - " +
+            (lastError?.response?.data?.error?.message || lastError?.message)
+        );
     }
 
     buildPrompt(description) {
         const contextPrompt = contextService.buildContextPrompt();
-        
+
         return `
 You are an expert engineering project manager. Analyze the following user description and create a well-structured engineering ticket.
 
@@ -310,7 +365,6 @@ INSTRUCTIONS:
 3. Create proper acceptance criteria for engineering work
 4. Identify technical considerations and scope
 5. Suggest appropriate tags and priority
-6. CRITICAL: Only use the following tags which are appropriate ['bug-fix', 'frontend', 'backend', 'design', 'devops']
 
 Return ONLY a JSON object with this exact structure:
 
@@ -397,7 +451,7 @@ EXAMPLES:
 - "high priority tasks created last week" results in {"query": "tasks", "priority": "high", "dateCreatedGt": timestamp_7_days_ago}
 - "completed tickets tagged frontend" results in {"query": "tickets", "statuses": ["complete", "done"], "tags": ["frontend"]}
 
-Return ONLY the JSON object, no explanations.`;
+CRITICAL: Return ONLY the raw JSON object - no markdown, no code blocks, no explanations.`;
     }
 
     buildIntentPrompt(prompt) {
@@ -435,7 +489,7 @@ INTENT CLASSIFICATION RULES:
 
 If unclear, default to "create" with confidence < 0.7.
 
-IMPORTANT: Respond with ONLY a valid JSON object. No explanations, no markdown, no code blocks. Just the JSON:
+CRITICAL: Respond with ONLY raw JSON - no markdown code blocks, no backticks, no explanations. Just the JSON:
 
 {
     "action": "search|create",
@@ -446,202 +500,9 @@ IMPORTANT: Respond with ONLY a valid JSON object. No explanations, no markdown, 
 }`;
     }
 
-    createFallbackStructure(description) {
-        // Enhanced fallback when LLM is not available
-        const words = description.toLowerCase();
-        
-        let type = 'task';
-        if (words.includes('bug') || words.includes('error') || words.includes('issue') || words.includes('problem') || words.includes('broken')) {
-            type = 'bug';
-        } else if (words.includes('feature') || words.includes('add') || words.includes('new') || words.includes('implement')) {
-            type = 'feature';
-        } else if (words.includes('improve') || words.includes('enhance') || words.includes('optimize') || words.includes('refactor')) {
-            type = 'improvement';
-        } else if (words.includes('research') || words.includes('investigate') || words.includes('spike') || words.includes('explore')) {
-            type = 'spike';
-        }
-
-        let priority = 'normal';
-        if (words.includes('urgent') || words.includes('critical') || words.includes('asap') || words.includes('production')) {
-            priority = 'urgent';
-        } else if (words.includes('high') || words.includes('important') || words.includes('blocking')) {
-            priority = 'high';
-        } else if (words.includes('low') || words.includes('minor') || words.includes('nice')) {
-            priority = 'low';
-        }
-
-        const title = description.split('\n')[0].substring(0, 80) || 'New Engineering Ticket';
-        
-        return {
-            title: title,
-            type: type,
-            priority: priority,
-            summary: `${type.charAt(0).toUpperCase() + type.slice(1)} work item`,
-            description: description,
-            stepsToReproduce: type === 'bug' ? ['To be defined'] : null,
-            expectedBehavior: type === 'bug' ? 'To be defined' : null,
-            actualBehavior: type === 'bug' ? 'To be defined' : null,
-            acceptanceCriteria: ['Work is completed as described', 'Code is tested and reviewed'],
-            technicalNotes: null,
-            testingNotes: 'Manual testing required',
-            tags: [type, 'auto-generated'],
-            estimatedComplexity: 'medium',
-            estimatedHours: null,
-            dependencies: null,
-            affectedComponents: null
-        };
-    }
-
-    createFallbackSearchStructure(searchQuery) {
-        // Enhanced fallback when LLM is not available
-        const words = searchQuery.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/);
-        
-        const result = {
-            query: searchQuery,
-            assignees: [],
-            statuses: [],
-            tags: [],
-            dateCreatedGt: null,
-            dateCreatedLt: null,
-            dateUpdatedGt: null,
-            dateUpdatedLt: null,
-            dueDateGt: null,
-            dueDateLt: null,
-            priority: null,
-            orderBy: 'updated',
-            reverse: true
-        };
-
-        // Extract assignees
-        const assigneeIndex = words.findIndex(word => 
-            ['assigned', 'assignee', 'by', 'for'].includes(word)
-        );
-        if (assigneeIndex !== -1 && assigneeIndex < words.length - 1) {
-            result.assignees = [words[assigneeIndex + 1]];
-        }
-
-        // Extract statuses
-        const statusKeywords = {
-            'open': ['open', 'todo', 'new'],
-            'in progress': ['progress', 'working', 'active'],
-            'done': ['done', 'complete', 'completed', 'finished', 'closed']
-        };
-        
-        for (const [status, keywords] of Object.entries(statusKeywords)) {
-            if (keywords.some(keyword => words.includes(keyword))) {
-                result.statuses.push(status);
-            }
-        }
-
-        // Extract priority
-        if (words.includes('urgent') || words.includes('critical')) {
-            result.priority = 'urgent';
-        } else if (words.includes('high')) {
-            result.priority = 'high';
-        } else if (words.includes('low')) {
-            result.priority = 'low';
-        }
-
-        // Extract basic date ranges
-        const now = Date.now();
-        const dayMs = 24 * 60 * 60 * 1000;
-        
-        if (words.includes('today')) {
-            const startOfDay = new Date();
-            startOfDay.setHours(0, 0, 0, 0);
-            result.dateCreatedGt = startOfDay.getTime();
-            result.query = words.filter(word => !['today', 'created', 'tickets', 'any', 'are', 'there', 'new'].includes(word)).join(' ') || 'tickets';
-        } else if (words.includes('yesterday')) {
-            const yesterday = new Date(now - dayMs);
-            yesterday.setHours(0, 0, 0, 0);
-            result.dateCreatedGt = yesterday.getTime();
-            result.dateCreatedLt = yesterday.getTime() + dayMs;
-            result.query = words.filter(word => !['yesterday', 'created', 'tickets', 'any', 'are', 'there'].includes(word)).join(' ') || 'tickets';
-        } else if (words.includes('week')) {
-            result.dateCreatedGt = now - (7 * dayMs);
-            result.query = words.filter(word => !['week', 'last', 'this', 'created', 'tickets', 'any', 'are', 'there'].includes(word)).join(' ') || 'tickets';
-        } else if (words.includes('month')) {
-            result.dateCreatedGt = now - (30 * dayMs);
-            result.query = words.filter(word => !['month', 'last', 'this', 'created', 'tickets', 'any', 'are', 'there'].includes(word)).join(' ') || 'tickets';
-        } else {
-            // Clean up the query by removing common search words
-            result.query = words.filter(word => !['are', 'there', 'any', 'new', 'tickets', 'created'].includes(word)).join(' ') || 'tickets';
-        }
-
-        return result;
-    }
-
-    createFallbackIntent(prompt) {
-        const words = prompt.toLowerCase();
-        
-        // Enhanced keyword-based intent detection
-        const searchKeywords = ['find', 'search', 'show', 'list', 'get', 'what', 'which', 'who has', 'assigned to', 'are there', 'any', 'tickets', 'created', 'updated', 'today', 'yesterday', 'this week', 'last week'];
-        const createKeywords = ['create', 'add', 'new', 'make', 'build', 'implement', 'fix', 'bug', 'issue', 'feature', 'broken', 'error', 'problem'];
-
-        // Special patterns that strongly indicate search intent
-        const searchPatterns = [
-            /are there.*tickets/i,
-            /what.*tickets/i,
-            /show.*tickets/i,
-            /list.*tickets/i,
-            /find.*tickets/i,
-            /tickets.*created/i,
-            /tickets.*updated/i,
-            /any.*tickets/i
-        ];
-
-        // Check for strong search patterns first
-        const hasSearchPattern = searchPatterns.some(pattern => pattern.test(prompt));
-        
-        const searchScore = searchKeywords.reduce((score, keyword) => 
-            words.includes(keyword) ? score + 1 : score, 0);
-        const createScore = createKeywords.reduce((score, keyword) => 
-            words.includes(keyword) ? score + 1 : score, 0);
-        
-        let action = 'create'; // Default to create
-        let confidence = 0.5;
-        
-        // If we have a strong search pattern, prioritize search
-        if (hasSearchPattern) {
-            action = 'search';
-            confidence = 0.9;
-        } else if (searchScore > createScore) {
-            action = 'search';
-            confidence = Math.min(0.9, 0.5 + (searchScore * 0.1));
-        } else if (createScore > 0) {
-            action = 'create';
-            confidence = Math.min(0.9, 0.5 + (createScore * 0.1));
-        }
-        
-        // Extract priority
-        let priority = null;
-        if (words.includes('urgent') || words.includes('critical') || words.includes('asap')) {
-            priority = 'urgent';
-        } else if (words.includes('high') || words.includes('important')) {
-            priority = 'high';
-        } else if (words.includes('low') || words.includes('minor')) {
-            priority = 'low';
-        }
-        
-        // Extract assignee (simple pattern matching)
-        let assignee = null;
-        const assigneeMatch = prompt.match(/(?:assign(?:ed)?\s+to|for|@)\s+(\w+)/i);
-        if (assigneeMatch) {
-            assignee = assigneeMatch[1];
-        }
-        
-        return {
-            action,
-            confidence,
-            reasoning: `Fallback classification based on keyword analysis. Search keywords: ${searchScore}, Create keywords: ${createScore}${hasSearchPattern ? ', Strong search pattern detected' : ''}`,
-            priority,
-            assignee
-        };
-    }
-
     async testConnection() {
         try {
-            const response = await this.client.get('/models');
+            const response = await this.client.get("/models");
             return { success: true, models: response.data.data.slice(0, 5) };
         } catch (error) {
             return { success: false, error: error.message };

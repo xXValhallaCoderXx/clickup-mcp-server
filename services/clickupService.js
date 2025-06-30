@@ -87,6 +87,71 @@ class ClickUpService {
         }
     }
 
+    // Get team members to lookup user IDs by name
+    async getTeamMembers(teamId = null) {
+        try {
+            const searchTeamId = teamId || this.teamId;
+            if (!searchTeamId) {
+                throw new Error('Team ID is required to get team members');
+            }
+
+            console.log(`Getting team members for team: ${searchTeamId}`);
+            const response = await this.client.get(`/team/${searchTeamId}`);
+            
+            return response.data.team.members || [];
+        } catch (error) {
+            console.error('Get team members error:', error.response?.data);
+            throw new Error(`Failed to get team members: ${error.response?.data?.err || error.message}`);
+        }
+    }
+
+    // Lookup user ID by username/display name
+    async lookupUserIds(usernames, teamId = null) {
+        try {
+            if (!usernames || usernames.length === 0) {
+                return [];
+            }
+
+            const members = await this.getTeamMembers(teamId);
+            const userIds = [];
+
+            for (const username of usernames) {
+                const member = members.find(m => {
+                    const user = m.user;
+                    const email = user.email?.toLowerCase() || '';
+                    const firstName = user.firstname?.toLowerCase() || '';
+                    const lastName = user.lastname?.toLowerCase() || '';
+                    const fullName = `${firstName} ${lastName}`.trim().toLowerCase();
+                    const usernameField = user.username?.toLowerCase() || '';
+                    const searchTerm = username.toLowerCase();
+                    
+                    return (
+                        email === searchTerm ||
+                        email.includes(searchTerm) ||
+                        usernameField === searchTerm ||
+                        firstName === searchTerm ||
+                        lastName === searchTerm ||
+                        fullName === searchTerm ||
+                        fullName.includes(searchTerm)
+                    );
+                });
+
+                if (member) {
+                    userIds.push(parseInt(member.user.id));
+                    console.log(`Found user: ${username} -> ${member.user.email || member.user.username} (ID: ${member.user.id})`);
+                } else {
+                    console.warn(`User not found: ${username}`);
+                    console.log(`Available users: ${members.map(m => m.user.email || m.user.username || `${m.user.firstname} ${m.user.lastname}`).join(', ')}`);
+                }
+            }
+
+            return userIds;
+        } catch (error) {
+            console.error('Lookup user IDs error:', error.response?.data);
+            throw new Error(`Failed to lookup user IDs: ${error.response?.data?.err || error.message}`);
+        }
+    }
+
     mapPriority(priority) {
         const priorityMap = {
             'urgent': 1,
@@ -122,6 +187,13 @@ class ClickUpService {
                 throw new Error('Team ID is required for searching tasks');
             }
 
+            // Convert assignee names to user IDs
+            let assigneeIds = [];
+            if (assignees.length > 0) {
+                assigneeIds = await this.lookupUserIds(assignees, teamId);
+                console.log(`Converted assignees ${assignees} to IDs: ${assigneeIds}`);
+            }
+
             const params = new URLSearchParams();
             
             // Add search query
@@ -129,9 +201,9 @@ class ClickUpService {
                 params.append('query', query);
             }
 
-            // Add filters
-            if (assignees.length > 0) {
-                assignees.forEach(assignee => params.append('assignees[]', assignee));
+            // Add filters with user IDs
+            if (assigneeIds.length > 0) {
+                assigneeIds.forEach(assigneeId => params.append('assignees[]', assigneeId));
             }
             
             if (statuses.length > 0) {
