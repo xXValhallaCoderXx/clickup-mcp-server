@@ -138,7 +138,6 @@ app.post('/api/search-tickets', async (req, res) => {
 });
 
 
-// Unified MCP endpoint - intelligently routes between search and create
 app.post('/mcp', async (req, res) => {
     try {
         const { prompt, teamId } = req.body;
@@ -197,13 +196,13 @@ app.post('/mcp', async (req, res) => {
                 priority: intent.priority || 'normal',
                 assignee: intent.assignee || null
             });
-            // const createdTicket = await clickupService.createTask(ticketData);
+            const createdTicket = await clickupService.createTask(ticketData);
 
             res.json({
                 success: true,
                 action: 'create',
                 prompt: prompt,
-                // ticket: createdTicket,
+                ticket: createdTicket,
                 processed: processedTicket
             });
 
