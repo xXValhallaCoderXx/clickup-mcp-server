@@ -5,10 +5,10 @@ const path = require('path');
 const axios = require('axios');
 require('dotenv').config();
 
-const clickupService = require('./services/clickupService');
-const llmService = require('./services/llmService');
-const templateService = require('./services/templateService');
-const contextService = require('./services/contextService');
+const clickupService = require('./services/clickup.service');
+const llmService = require('./services/llm.service');
+const templateService = require('./services/template.service');
+const contextService = require('./services/context.service');
 
 const app = express();
 const PORT = process.env.PORT || 3000;

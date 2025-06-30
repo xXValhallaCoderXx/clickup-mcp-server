@@ -1,5 +1,5 @@
 const axios = require('axios');
-const contextService = require('./contextService');
+const contextService = require('./context.service');
 
 class LLMService {
     constructor() {
