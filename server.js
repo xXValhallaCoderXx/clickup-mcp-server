@@ -132,6 +132,7 @@ app.post('/mcp', async (req, res) => {
 
         // Use LLM to determine intent and extract parameters
         const intent = await llmService.determineIntent(prompt);
+        console.log("INTENT: ", intent)
         
         if (intent.action === 'search') {
             // Search for tickets
@@ -176,13 +177,13 @@ app.post('/mcp', async (req, res) => {
                 priority: intent.priority || 'normal', 
                 assignee: intent.assignee || null 
             });
-            const createdTicket = await clickupService.createTask(ticketData);
+            // const createdTicket = await clickupService.createTask(ticketData);
             
             res.json({
                 success: true,
                 action: 'create',
                 prompt: prompt,
-                ticket: createdTicket,
+                // ticket: createdTicket,
                 processed: processedTicket
             });
             

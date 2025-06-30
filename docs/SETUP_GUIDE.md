@@ -80,40 +80,9 @@ NODE_ENV=development
 # 1. Install dependencies
 npm install
 
-# 2. Run interactive setup (optional)
-npm run setup
-
-# 3. Start the server
+# 2. Start the server
 npm start
 
-# 4. Test everything works
+# 3. Test everything works
 npm test
 ```
-
-## 🔍 Troubleshooting
-
-### "Invalid API Token"
-- Make sure you copied the **Personal API Token** (starts with `pk_`)
-- NOT the OAuth client secret
-- Token should be from Settings → Apps → API Token
-
-### "List not found"
-- Make sure the List ID is correct
-- You need permission to create tasks in that list
-- Try using our structure endpoint to find valid list IDs
-
-### "OpenRouter quota exceeded"
-- You've used up free credits
-- The app will fall back to basic processing
-- Consider upgrading or using a different model
-
-## 📞 Need Help?
-
-1. **Check server logs** for detailed error messages
-2. **Use the test connection** feature in the web app
-3. **Visit the structure endpoint** to explore your ClickUp workspace
-4. **Check the troubleshooting section** in README.md
-
----
-
-**You're ready to create tickets! 🎫✨**
