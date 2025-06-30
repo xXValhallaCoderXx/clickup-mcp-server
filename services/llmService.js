@@ -310,6 +310,7 @@ INSTRUCTIONS:
 3. Create proper acceptance criteria for engineering work
 4. Identify technical considerations and scope
 5. Suggest appropriate tags and priority
+6. CRITICAL: Only use the following tags which are appropriate ['bug-fix', 'frontend', 'backend', 'design', 'devops']
 
 Return ONLY a JSON object with this exact structure:
 
