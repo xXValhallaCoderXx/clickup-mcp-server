@@ -1,16 +1,18 @@
-# ClickUp MCP Server with AI-Powered Ticket Creation
+# ClickUp MCP Server with AI-Powered Ticket Management
 
-An affordable, easy-to-use web application that creates structured ClickUp tickets from natural language descriptions using AI. Perfect for teams who want to streamline their ticket creation process without breaking the bank.
+A powerful, easy-to-use MCP (Model Context Protocol) server that provides two core functionalities: creating structured ClickUp tickets from natural language descriptions and searching existing tickets using natural language queries. Perfect for teams who want to streamline their ticket management process.
 
 ## 🌟 Features
 
-- **AI-Powered Processing**: Uses free LLM models via OpenRouter to analyze issue descriptions
-- **Smart Templates**: Automatically categorizes tickets (bug, feature, task, improvement)
-- **Web GUI**: Clean, responsive interface for easy ticket creation
-- **ClickUp Integration**: Direct integration with ClickUp API
+- **AI-Powered Ticket Creation**: Uses free LLM models via OpenRouter to analyze issue descriptions
+- **Natural Language Search**: Search for tickets using plain English queries like "bugs assigned to john" or "high priority tasks created last week"
+- **Smart Templates**: Automatically categorizes tickets (bug, feature, task, improvement, spike)
+- **Web GUI**: Clean, responsive interface with tabbed navigation
+- **ClickUp Integration**: Direct integration with ClickUp API for both creation and search
 - **Cost-Effective**: Uses free/affordable services to minimize costs
 - **Template System**: Structured ticket creation with acceptance criteria
 - **Real-time Status**: Connection status monitoring and health checks
+- **Context-Aware**: Company and project context integration for better ticket quality
 
 ## 🚀 Quick Start
 
@@ -93,10 +95,17 @@ Navigate to `http://localhost:3000`
 
 ## 💡 Usage
 
+### Creating Tickets
 1. **Describe your issue**: Write a natural language description of the problem or feature
 2. **Set priority**: Choose the appropriate priority level
 3. **Assign (optional)**: Add an assignee if needed
 4. **Create**: Click "Create Ticket" and let AI do the work!
+
+### Searching Tickets
+1. **Switch to Search tab**: Click the "Search Tickets" tab
+2. **Enter natural language query**: Describe what you're looking for
+3. **Optional team ID**: Specify a team ID or use the default from your environment
+4. **Search**: Click "Search Tickets" and view results with direct links to ClickUp
 
 ### Example Descriptions
 
@@ -113,6 +122,28 @@ Steps: 1. Login, 2. Go to profile, 3. Edit name, 4. Click save
 Add a dark mode toggle to the navigation bar. Users should be able to 
 switch between light and dark themes and have their preference saved 
 across sessions.
+```
+
+### Example Search Queries
+
+**Find bugs assigned to specific user**:
+```
+bugs assigned to john
+```
+
+**Find high priority tasks from last week**:
+```
+high priority tasks created last week
+```
+
+**Find completed tickets with specific tags**:
+```
+completed tickets tagged frontend
+```
+
+**Find urgent issues**:
+```
+urgent tickets created today
 ```
 
 ## 🏗️ Architecture

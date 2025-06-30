@@ -27,33 +27,15 @@ app.get('/', (req, res) => {
 // API Routes
 app.post('/api/create-ticket', async (req, res) => {
     try {
-        const { description, priority = 'normal', assignee = null, useN8N = true } = req.body;
+        const { description, priority = 'normal', assignee = null } = req.body;
         
         if (!description) {
             return res.status(400).json({ error: 'Description is required' });
         }
 
-        console.log('Processing ticket creation request:', { description, priority, assignee, useN8N });
+        console.log('Processing ticket creation request:', { description, priority, assignee });
 
-        if (useN8N && process.env.N8N_WEBHOOK_URL) {
-            // Use N8N workflow
-            try {
-                const n8nResponse = await axios.post(process.env.N8N_WEBHOOK_URL, {
-                    description,
-                    priority,
-                    assignee,
-                    listId: process.env.CLICKUP_LIST_ID
-                });
-                
-                res.json(n8nResponse.data);
-                return;
-            } catch (n8nError) {
-                console.warn('N8N workflow failed, falling back to direct processing:', n8nError.message);
-                // Fall through to direct processing
-            }
-        }
-
-        // Direct processing (fallback or when N8N is disabled)
+        // Process the ticket using LLM and create in ClickUp
         const processedTicket = await llmService.processDescription(description);
         const ticketData = templateService.applyTemplate(processedTicket, { priority, assignee });
         const createdTicket = await clickupService.createTask(ticketData);
@@ -61,8 +43,7 @@ app.post('/api/create-ticket', async (req, res) => {
         res.json({
             success: true,
             ticket: createdTicket,
-            processed: processedTicket,
-            method: 'direct'
+            processed: processedTicket
         });
         
     } catch (error) {
@@ -292,6 +273,113 @@ app.get('/api/context/stats', (req, res) => {
         res.json({ success: true, stats });
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+// Search tickets with natural language
+app.post('/api/search-tickets', async (req, res) => {
+    try {
+        const { query, teamId } = req.body;
+        
+        if (!query) {
+            return res.status(400).json({ error: 'Search query is required' });
+        }
+
+        console.log('Processing search request:', { query, teamId });
+
+        // Process the natural language query using LLM
+        const searchParams = await llmService.processSearchQuery(query);
+        
+        // Use the provided teamId or fall back to environment variable
+        const searchTeamId = teamId || process.env.CLICKUP_TEAM_ID;
+        
+        if (!searchTeamId) {
+            return res.status(400).json({ 
+                error: 'Team ID is required for searching. Please provide teamId or set CLICKUP_TEAM_ID in your environment.' 
+            });
+        }
+
+        // Search tasks using the processed parameters
+        const searchResults = await clickupService.searchTasks(searchParams.query, {
+            teamId: searchTeamId,
+            assignees: searchParams.assignees,
+            statuses: searchParams.statuses,
+            tags: searchParams.tags,
+            dateCreatedGt: searchParams.dateCreatedGt,
+            dateCreatedLt: searchParams.dateCreatedLt,
+            dateUpdatedGt: searchParams.dateUpdatedGt,
+            dateUpdatedLt: searchParams.dateUpdatedLt,
+            dueDateGt: searchParams.dueDateGt,
+            dueDateLt: searchParams.dueDateLt,
+            orderBy: searchParams.orderBy,
+            reverse: searchParams.reverse
+        });
+        
+        res.json({
+            success: true,
+            query: query,
+            searchParams: searchParams,
+            results: searchResults.tasks,
+            totalFound: searchResults.tasks.length,
+            lastPage: searchResults.lastPage
+        });
+        
+    } catch (error) {
+        console.error('Error searching tickets:', error);
+        res.status(500).json({ 
+            error: 'Failed to search tickets', 
+            details: error.message 
+        });
+    }
+});
+
+// Get a specific task by ID
+app.get('/api/task/:taskId', async (req, res) => {
+    try {
+        const { taskId } = req.params;
+        const { includeSubtasks = false } = req.query;
+        
+        const task = await clickupService.getTask(taskId, includeSubtasks === 'true');
+        
+        res.json({
+            success: true,
+            task: task
+        });
+        
+    } catch (error) {
+        console.error('Error getting task:', error);
+        res.status(500).json({ 
+            error: 'Failed to get task', 
+            details: error.message 
+        });
+    }
+});
+
+// Get tasks from a specific list with filters
+app.post('/api/list-tasks', async (req, res) => {
+    try {
+        const { listId, options = {} } = req.body;
+        
+        if (!listId) {
+            return res.status(400).json({ error: 'List ID is required' });
+        }
+
+        const results = await clickupService.getTasksFromList(listId, options);
+        
+        res.json({
+            success: true,
+            listId: listId,
+            results: results.tasks,
+            totalFound: results.tasks.length,
+            lastPage: results.lastPage
+        });
+        
+    } catch (error) {
+        console.error('Error getting list tasks:', error);
+        res.status(500).json({ 
+            error: 'Failed to get list tasks', 
+            details: error.message 
+        });
     }
 });
 

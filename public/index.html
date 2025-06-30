@@ -22,8 +22,20 @@
         </header>
 
         <main class="main-content">
-            <div class="form-section">
-                <form id="ticket-form">
+            <!-- Tab Navigation -->
+            <div class="tab-navigation">
+                <button class="tab-btn active" data-tab="create">
+                    <i class="fas fa-plus"></i> Create Ticket
+                </button>
+                <button class="tab-btn" data-tab="search">
+                    <i class="fas fa-search"></i> Search Tickets
+                </button>
+            </div>
+
+            <!-- Create Ticket Tab -->
+            <div class="tab-content active" id="create-tab">
+                <div class="form-section">
+                    <form id="ticket-form">
                     <div class="form-group">
                         <label for="description">
                             <i class="fas fa-edit"></i> Issue Description
@@ -66,16 +78,6 @@
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="use-n8n" name="useN8N" checked>
-                            <span class="checkmark"></span>
-                            <i class="fas fa-workflow"></i> Use N8N Workflow (recommended)
-                        </label>
-                        <div class="form-help">
-                            Uses N8N for flexible workflow processing. Unchecked uses direct API processing.
-                        </div>
-                    </div>
 
                     <div class="form-actions">
                         <button type="submit" id="create-btn" class="btn btn-primary">
@@ -102,6 +104,62 @@
                     <!-- Results will be populated here -->
                 </div>
             </div>
+            </div>
+
+            <!-- Search Tickets Tab -->
+            <div class="tab-content" id="search-tab">
+                <div class="search-section">
+                    <form id="search-form">
+                        <div class="form-group">
+                            <label for="search-query">
+                                <i class="fas fa-search"></i> Search Query
+                            </label>
+                            <input 
+                                type="text" 
+                                id="search-query" 
+                                name="searchQuery" 
+                                placeholder="Search for tickets using natural language. For example: 'bugs assigned to john', 'high priority tasks created last week', 'completed tickets tagged frontend'"
+                                required
+                            >
+                            <div class="form-help">
+                                Use natural language to search for tickets. You can search by assignee, status, priority, tags, and date ranges.
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="team-id">
+                                <i class="fas fa-users"></i> Team ID (Optional)
+                            </label>
+                            <input 
+                                type="text" 
+                                id="team-id" 
+                                name="teamId" 
+                                placeholder="Leave empty to use default team"
+                            >
+                            <div class="form-help">
+                                If not provided, will use the CLICKUP_TEAM_ID from your environment.
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" id="search-btn" class="btn btn-primary">
+                                <i class="fas fa-search"></i>
+                                <span>Search Tickets</span>
+                                <div class="spinner" id="search-spinner"></div>
+                            </button>
+                            <button type="button" id="clear-search-btn" class="btn btn-secondary">
+                                <i class="fas fa-eraser"></i> Clear
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="search-results-section" id="search-results-section" style="display: none;">
+                    <div class="search-results-content" id="search-results-content">
+                        <!-- Search results will be populated here -->
+                    </div>
+                </div>
+            </div>
         </main>
 
         <footer class="footer">
@@ -116,9 +174,6 @@
                     </button>
                     <button id="manage-context" class="link-btn">
                         <i class="fas fa-cog"></i> Manage Context
-                    </button>
-                    <button id="open-n8n" class="link-btn">
-                        <i class="fas fa-workflow"></i> Open N8N
                     </button>
                     <button id="show-help" class="link-btn">
                         <i class="fas fa-question-circle"></i> Help

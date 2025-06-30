@@ -33,8 +33,14 @@ class TicketCreator {
         document.getElementById('save-context').addEventListener('click', () => this.saveContext());
         document.getElementById('reset-context').addEventListener('click', () => this.resetContext());
 
-        // N8N integration
-        document.getElementById('open-n8n').addEventListener('click', () => this.openN8N());
+        // Tab navigation
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => this.switchTab(btn.dataset.tab));
+        });
+
+        // Search form
+        document.getElementById('search-form').addEventListener('submit', (e) => this.handleSearchSubmit(e));
+        document.getElementById('clear-search-btn').addEventListener('click', () => this.clearSearchForm());
 
         // Help modal
         document.getElementById('show-help').addEventListener('click', () => this.showHelp());
@@ -67,8 +73,7 @@ class TicketCreator {
         const data = {
             description: formData.get('description').trim(),
             priority: formData.get('priority'),
-            assignee: formData.get('assignee').trim() || null,
-            useN8N: document.getElementById('use-n8n').checked
+            assignee: formData.get('assignee').trim() || null
         };
 
         if (!data.description) {
@@ -420,8 +425,241 @@ class TicketCreator {
         }
     }
 
-    openN8N() {
-        window.open('http://localhost:5678', '_blank');
+    switchTab(tabName) {
+        // Update tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tabName);
+        });
+
+        // Update tab content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.toggle('active', content.id === `${tabName}-tab`);
+        });
+
+        // Clear results when switching tabs
+        this.hideResults();
+        this.hideSearchResults();
+    }
+
+    async handleSearchSubmit(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(document.getElementById('search-form'));
+        const data = {
+            query: formData.get('searchQuery').trim(),
+            teamId: formData.get('teamId').trim() || null
+        };
+
+        if (!data.query) {
+            this.showError('Please provide a search query.');
+            return;
+        }
+
+        this.setSearchLoading(true);
+        this.hideSearchResults();
+
+        try {
+            const response = await fetch('/api/search-tickets', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                this.showSearchResults(result);
+            } else {
+                this.showSearchError(result.error || 'Failed to search tickets');
+            }
+        } catch (error) {
+            console.error('Error searching tickets:', error);
+            this.showSearchError('Network error. Please check your connection and try again.');
+        } finally {
+            this.setSearchLoading(false);
+        }
+    }
+
+    setSearchLoading(loading) {
+        const searchBtn = document.getElementById('search-btn');
+        const spinner = document.getElementById('search-spinner');
+        
+        searchBtn.disabled = loading;
+        searchBtn.classList.toggle('loading', loading);
+        
+        if (loading) {
+            searchBtn.querySelector('span').textContent = 'Searching...';
+            spinner.style.display = 'block';
+        } else {
+            searchBtn.querySelector('span').textContent = 'Search Tickets';
+            spinner.style.display = 'none';
+        }
+    }
+
+    showSearchResults(result) {
+        const { query, searchParams, results, totalFound } = result;
+        
+        let html = `
+            <div class="search-header">
+                <h3><i class="fas fa-search"></i> Search Results</h3>
+                <p>Found ${totalFound} ticket${totalFound !== 1 ? 's' : ''} for "${query}"</p>
+            </div>
+        `;
+
+        // Show search parameters that were extracted
+        if (searchParams && Object.keys(searchParams).some(key => 
+            searchParams[key] && 
+            (Array.isArray(searchParams[key]) ? searchParams[key].length > 0 : true) &&
+            key !== 'query' && key !== 'orderBy' && key !== 'reverse'
+        )) {
+            html += `
+                <div class="search-params-display">
+                    <div class="search-params-title">Extracted Search Parameters:</div>
+                    ${this.formatSearchParams(searchParams)}
+                </div>
+            `;
+        }
+
+        if (results && results.length > 0) {
+            html += '<div class="search-results-list">';
+            
+            results.forEach(task => {
+                html += this.formatSearchResultItem(task);
+            });
+            
+            html += '</div>';
+        } else {
+            html += `
+                <div class="search-no-results">
+                    <i class="fas fa-search"></i>
+                    <h4>No tickets found</h4>
+                    <p>Try adjusting your search query or check if you have access to the team's tickets.</p>
+                </div>
+            `;
+        }
+
+        this.showSearchResultsSection(html);
+        this.showNotification(`Found ${totalFound} ticket${totalFound !== 1 ? 's' : ''}`, 'success');
+    }
+
+    formatSearchParams(params) {
+        let html = '';
+        
+        if (params.assignees && params.assignees.length > 0) {
+            html += `<span class="search-param">Assignees: ${params.assignees.join(', ')}</span>`;
+        }
+        if (params.statuses && params.statuses.length > 0) {
+            html += `<span class="search-param">Status: ${params.statuses.join(', ')}</span>`;
+        }
+        if (params.tags && params.tags.length > 0) {
+            html += `<span class="search-param">Tags: ${params.tags.join(', ')}</span>`;
+        }
+        if (params.priority) {
+            html += `<span class="search-param">Priority: ${params.priority}</span>`;
+        }
+        if (params.dateCreatedGt) {
+            const date = new Date(params.dateCreatedGt);
+            html += `<span class="search-param">Created after: ${date.toLocaleDateString()}</span>`;
+        }
+        if (params.dateCreatedLt) {
+            const date = new Date(params.dateCreatedLt);
+            html += `<span class="search-param">Created before: ${date.toLocaleDateString()}</span>`;
+        }
+        
+        return html;
+    }
+
+    formatSearchResultItem(task) {
+        const createdDate = new Date(parseInt(task.date_created)).toLocaleDateString();
+        const updatedDate = new Date(parseInt(task.date_updated)).toLocaleDateString();
+        
+        return `
+            <div class="search-result-item">
+                <div class="search-result-header">
+                    <h4 class="search-result-title">
+                        ${task.url ? `<a href="${task.url}" target="_blank">${task.name}</a>` : task.name}
+                    </h4>
+                    <div class="search-result-meta">
+                        <span class="search-result-status">${task.status?.status || 'Unknown'}</span>
+                        ${task.priority ? `<span class="search-result-priority priority-${this.mapPriorityName(task.priority.priority)}">${this.mapPriorityName(task.priority.priority)}</span>` : ''}
+                    </div>
+                </div>
+                
+                ${task.description ? `<div class="search-result-description">${this.truncateText(task.description, 200)}</div>` : ''}
+                
+                ${task.tags && task.tags.length > 0 ? `
+                    <div class="search-result-tags">
+                        ${task.tags.map(tag => `<span class="search-result-tag">${tag.name}</span>`).join('')}
+                    </div>
+                ` : ''}
+                
+                <div class="search-result-footer">
+                    <div class="search-result-assignee">
+                        ${task.assignees && task.assignees.length > 0 ? 
+                            `Assigned to: ${task.assignees.map(a => a.username || a.email).join(', ')}` : 
+                            'Unassigned'
+                        }
+                    </div>
+                    <div class="search-result-dates">
+                        <span>Created: ${createdDate}</span>
+                        <span>Updated: ${updatedDate}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    mapPriorityName(priority) {
+        const priorityMap = {
+            '1': 'urgent',
+            '2': 'high', 
+            '3': 'normal',
+            '4': 'low'
+        };
+        return priorityMap[priority] || 'normal';
+    }
+
+    truncateText(text, maxLength) {
+        if (!text) return '';
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
+    }
+
+    showSearchError(message) {
+        const html = `
+            <div class="error-message">
+                <h3><i class="fas fa-exclamation-circle"></i> Search Error</h3>
+                <p>${message}</p>
+                <p style="margin-top: 10px; font-size: 0.9rem; opacity: 0.9;">
+                    Please check your search query and try again.
+                </p>
+            </div>
+        `;
+        
+        this.showSearchResultsSection(html);
+        this.showNotification('Search failed', 'error');
+    }
+
+    showSearchResultsSection(html) {
+        const resultsSection = document.getElementById('search-results-section');
+        const resultsContent = document.getElementById('search-results-content');
+        
+        resultsContent.innerHTML = html;
+        resultsSection.style.display = 'block';
+        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    hideSearchResults() {
+        const resultsSection = document.getElementById('search-results-section');
+        resultsSection.style.display = 'none';
+    }
+
+    clearSearchForm() {
+        document.getElementById('search-form').reset();
+        this.hideSearchResults();
+        document.getElementById('search-query').focus();
     }
 
     showHelp() {

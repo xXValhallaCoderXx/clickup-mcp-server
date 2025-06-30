@@ -220,6 +220,172 @@ class ClickUpService {
             throw new Error(`Failed to find lists: ${error.message}`);
         }
     }
+
+    // Search tasks using ClickUp's search API
+    async searchTasks(query, options = {}) {
+        try {
+            const {
+                teamId = this.teamId,
+                assignees = [],
+                statuses = [],
+                dateCreatedGt = null,
+                dateCreatedLt = null,
+                dateUpdatedGt = null,
+                dateUpdatedLt = null,
+                dueDateGt = null,
+                dueDateLt = null,
+                tags = [],
+                includeSubtasks = false,
+                page = 0,
+                orderBy = 'updated',
+                reverse = true
+            } = options;
+
+            if (!teamId) {
+                throw new Error('Team ID is required for searching tasks');
+            }
+
+            const params = new URLSearchParams();
+            
+            // Add search query
+            if (query) {
+                params.append('query', query);
+            }
+
+            // Add filters
+            if (assignees.length > 0) {
+                assignees.forEach(assignee => params.append('assignees[]', assignee));
+            }
+            
+            if (statuses.length > 0) {
+                statuses.forEach(status => params.append('statuses[]', status));
+            }
+            
+            if (tags.length > 0) {
+                tags.forEach(tag => params.append('tags[]', tag));
+            }
+
+            // Date filters
+            if (dateCreatedGt) params.append('date_created_gt', dateCreatedGt);
+            if (dateCreatedLt) params.append('date_created_lt', dateCreatedLt);
+            if (dateUpdatedGt) params.append('date_updated_gt', dateUpdatedGt);
+            if (dateUpdatedLt) params.append('date_updated_lt', dateUpdatedLt);
+            if (dueDateGt) params.append('due_date_gt', dueDateGt);
+            if (dueDateLt) params.append('due_date_lt', dueDateLt);
+
+            // Other options
+            params.append('include_subtasks', includeSubtasks);
+            params.append('page', page);
+            params.append('order_by', orderBy);
+            params.append('reverse', reverse);
+
+            console.log(`Searching tasks in team ${teamId} with query: "${query}"`);
+            
+            const response = await this.client.get(`/team/${teamId}/task?${params.toString()}`);
+            
+            return {
+                tasks: response.data.tasks || [],
+                lastPage: response.data.last_page || false
+            };
+        } catch (error) {
+            console.error('Search tasks error:', error.response?.data);
+            throw new Error(`Failed to search tasks: ${error.response?.data?.err || error.message}`);
+        }
+    }
+
+    // Get a specific task by ID
+    async getTask(taskId, includeSubtasks = false) {
+        try {
+            const params = new URLSearchParams();
+            params.append('include_subtasks', includeSubtasks);
+            
+            const response = await this.client.get(`/task/${taskId}?${params.toString()}`);
+            
+            // Add URL to task
+            const task = response.data;
+            if (task && task.id) {
+                task.url = `https://app.clickup.com/t/${task.id}`;
+            }
+            
+            return task;
+        } catch (error) {
+            console.error('Get task error:', error.response?.data);
+            throw new Error(`Failed to get task: ${error.response?.data?.err || error.message}`);
+        }
+    }
+
+    // Get tasks from a specific list
+    async getTasksFromList(listId, options = {}) {
+        try {
+            const {
+                archived = false,
+                page = 0,
+                orderBy = 'updated',
+                reverse = true,
+                subtasks = false,
+                statuses = [],
+                includeClosed = false,
+                assignees = [],
+                tags = [],
+                dueDateGt = null,
+                dueDateLt = null,
+                dateCreatedGt = null,
+                dateCreatedLt = null,
+                dateUpdatedGt = null,
+                dateUpdatedLt = null
+            } = options;
+
+            const params = new URLSearchParams();
+            
+            params.append('archived', archived);
+            params.append('page', page);
+            params.append('order_by', orderBy);
+            params.append('reverse', reverse);
+            params.append('subtasks', subtasks);
+            params.append('include_closed', includeClosed);
+
+            // Add array filters
+            if (statuses.length > 0) {
+                statuses.forEach(status => params.append('statuses[]', status));
+            }
+            
+            if (assignees.length > 0) {
+                assignees.forEach(assignee => params.append('assignees[]', assignee));
+            }
+            
+            if (tags.length > 0) {
+                tags.forEach(tag => params.append('tags[]', tag));
+            }
+
+            // Date filters
+            if (dueDateGt) params.append('due_date_gt', dueDateGt);
+            if (dueDateLt) params.append('due_date_lt', dueDateLt);
+            if (dateCreatedGt) params.append('date_created_gt', dateCreatedGt);
+            if (dateCreatedLt) params.append('date_created_lt', dateCreatedLt);
+            if (dateUpdatedGt) params.append('date_updated_gt', dateUpdatedGt);
+            if (dateUpdatedLt) params.append('date_updated_lt', dateUpdatedLt);
+
+            console.log(`Getting tasks from list ${listId}`);
+            
+            const response = await this.client.get(`/list/${listId}/task?${params.toString()}`);
+            
+            // Add URLs to tasks
+            const tasks = response.data.tasks || [];
+            tasks.forEach(task => {
+                if (task.id) {
+                    task.url = `https://app.clickup.com/t/${task.id}`;
+                }
+            });
+            
+            return {
+                tasks: tasks,
+                lastPage: response.data.last_page || false
+            };
+        } catch (error) {
+            console.error('Get tasks from list error:', error.response?.data);
+            throw new Error(`Failed to get tasks from list: ${error.response?.data?.err || error.message}`);
+        }
+    }
 }
 
 module.exports = new ClickUpService();
