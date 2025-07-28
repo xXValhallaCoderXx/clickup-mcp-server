@@ -33,14 +33,33 @@ class LLMService {
         console.log(`Switching to model: ${this.getCurrentModel()}`);
     }
 
+    isValidResponseStructure(parsed) {
+        // Check for intent response structure
+        if (parsed.action !== undefined) {
+            return true;
+        }
+        
+        // Check for search response structure  
+        if (parsed.query !== undefined) {
+            return true;
+        }
+        
+        // Check for ticket creation response structure
+        if (parsed.title !== undefined || parsed.type !== undefined) {
+            return true;
+        }
+        
+        return false;
+    }
+
     parseJsonResponse(content) {
         console.log("CONTENT: ", content);
         
         // Step 1: Try direct JSON parsing first
         try {
             const parsed = JSON.parse(content);
-            // Validate the structure - check for both intent and search response structures
-            if (parsed && typeof parsed === "object" && (parsed.action || parsed.query !== undefined)) {
+            // Validate the structure - check for different response types
+            if (parsed && typeof parsed === "object" && this.isValidResponseStructure(parsed)) {
                 return parsed;
             }
         } catch (parseError) {
@@ -63,7 +82,7 @@ class LLMService {
         // Step 3: Try parsing the cleaned content
         try {
             const parsed = JSON.parse(cleanContent);
-            if (parsed && typeof parsed === "object" && (parsed.action || parsed.query !== undefined)) {
+            if (parsed && typeof parsed === "object" && this.isValidResponseStructure(parsed)) {
                 console.log("Successfully parsed cleaned JSON");
                 return parsed;
             }
@@ -79,7 +98,7 @@ class LLMService {
 
             try {
                 const parsed = JSON.parse(jsonString);
-                if (parsed && typeof parsed === "object" && (parsed.action || parsed.query !== undefined)) {
+                if (parsed && typeof parsed === "object" && this.isValidResponseStructure(parsed)) {
                     console.log("Successfully parsed extracted JSON");
                     return parsed;
                 }
