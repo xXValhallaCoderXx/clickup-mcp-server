@@ -162,6 +162,26 @@ class ClickUpService {
         return priorityMap[priority?.toLowerCase()] || 3;
     }
 
+    // Helper method to explain ClickUp API limitations
+    getSearchLimitations() {
+        return {
+            assignmentDateFilter: false,
+            availableFilters: [
+                'date_created_gt/lt - When the task was created',
+                'date_updated_gt/lt - When the task was last modified',
+                'due_date_gt/lt - The task due date',
+                'assignees[] - Tasks assigned to specific users',
+                'statuses[] - Task status filtering',
+                'tags[] - Tag-based filtering'
+            ],
+            workarounds: [
+                'For "assigned yesterday" queries, we use date_updated filters as an approximation',
+                'Tasks are also filtered client-side by assignee for better accuracy',
+                'Consider using broader date ranges and filtering results manually if needed'
+            ]
+        };
+    }
+
 
     // Search tasks using ClickUp's search API
     async searchTasks(query, options = {}) {
@@ -215,13 +235,31 @@ class ClickUpService {
                 tags.forEach(tag => params.append('tags[]', tag));
             }
 
-            // Date filters
-            if (dateCreatedGt) params.append('date_created_gt', dateCreatedGt);
-            if (dateCreatedLt) params.append('date_created_lt', dateCreatedLt);
-            if (dateUpdatedGt) params.append('date_updated_gt', dateUpdatedGt);
-            if (dateUpdatedLt) params.append('date_updated_lt', dateUpdatedLt);
-            if (dueDateGt) params.append('due_date_gt', dueDateGt);
-            if (dueDateLt) params.append('due_date_lt', dueDateLt);
+            // Date filters - convert to ClickUp format if needed
+            if (dateCreatedGt) {
+                const timestamp = typeof dateCreatedGt === 'number' ? dateCreatedGt : parseInt(dateCreatedGt);
+                params.append('date_created_gt', timestamp);
+            }
+            if (dateCreatedLt) {
+                const timestamp = typeof dateCreatedLt === 'number' ? dateCreatedLt : parseInt(dateCreatedLt);
+                params.append('date_created_lt', timestamp);
+            }
+            if (dateUpdatedGt) {
+                const timestamp = typeof dateUpdatedGt === 'number' ? dateUpdatedGt : parseInt(dateUpdatedGt);
+                params.append('date_updated_gt', timestamp);
+            }
+            if (dateUpdatedLt) {
+                const timestamp = typeof dateUpdatedLt === 'number' ? dateUpdatedLt : parseInt(dateUpdatedLt);
+                params.append('date_updated_lt', timestamp);
+            }
+            if (dueDateGt) {
+                const timestamp = typeof dueDateGt === 'number' ? dueDateGt : parseInt(dueDateGt);
+                params.append('due_date_gt', timestamp);
+            }
+            if (dueDateLt) {
+                const timestamp = typeof dueDateLt === 'number' ? dueDateLt : parseInt(dueDateLt);
+                params.append('due_date_lt', timestamp);
+            }
 
             // Other options
             params.append('include_subtasks', includeSubtasks);
@@ -230,21 +268,51 @@ class ClickUpService {
             params.append('reverse', reverse);
 
             console.log(`Searching tasks in team ${teamId} with query: "${query}"${limit ? ` (limit: ${limit})` : ''}`);
+            console.log('Search parameters:', params.toString());
             
             const response = await this.client.get(`/team/${teamId}/task?${params.toString()}`);
             
             let tasks = response.data.tasks || [];
             
+            // Log original count
+            console.log(`ClickUp returned ${tasks.length} tasks before client-side filtering`);
+            
+            // Apply additional client-side filtering for better accuracy
+            // This helps when ClickUp's server-side filtering isn't precise enough
+            if (assigneeIds.length > 0) {
+                tasks = tasks.filter(task => {
+                    const taskAssignees = task.assignees || [];
+                    return taskAssignees.some(assignee => 
+                        assigneeIds.includes(parseInt(assignee.id))
+                    );
+                });
+                console.log(`After assignee filtering: ${tasks.length} tasks`);
+            }
+            
             // Apply limit if specified
             if (limit && limit > 0) {
                 tasks = tasks.slice(0, limit);
+                console.log(`After limit ${limit}: ${tasks.length} tasks`);
             }
+            
+            // Add helpful metadata to tasks
+            tasks = tasks.map(task => ({
+                ...task,
+                url: `https://app.clickup.com/t/${task.id}`,
+                dateCreatedReadable: task.date_created ? new Date(parseInt(task.date_created)).toLocaleString() : null,
+                dateUpdatedReadable: task.date_updated ? new Date(parseInt(task.date_updated)).toLocaleString() : null,
+                dueDateReadable: task.due_date ? new Date(parseInt(task.due_date)).toLocaleString() : null,
+                assigneeNames: (task.assignees || []).map(a => a.username || a.email || `${a.firstname} ${a.lastname}`.trim()).filter(Boolean)
+            }));
             
             return {
                 tasks: tasks,
                 lastPage: response.data.last_page || false,
                 totalFound: tasks.length,
-                limitApplied: limit
+                limitApplied: limit,
+                searchNote: assignees.length > 0 ? 
+                    "Note: ClickUp API cannot filter by assignment date. Results show tasks assigned to the specified users, filtered by update date as approximation." : 
+                    null
             };
         } catch (error) {
             console.error('Search tasks error:', error.response?.data);

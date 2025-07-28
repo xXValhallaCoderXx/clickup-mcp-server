@@ -69,6 +69,23 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// API capabilities and limitations endpoint
+app.get('/api/capabilities', (req, res) => {
+    const limitations = clickupService.getSearchLimitations();
+    res.json({
+        success: true,
+        capabilities: {
+            search: {
+                supported: true,
+                limitations: limitations
+            },
+            create: {
+                supported: true
+            }
+        }
+    });
+});
+
 
 // Search tickets with natural language
 app.post('/api/search-tickets', async (req, res) => {
@@ -110,16 +127,16 @@ app.post('/api/search-tickets', async (req, res) => {
             limit: searchParams.limit
         });
 
-        res.json({
-            success: true,
-            query: query,
-            searchParams: searchParams,
-            results: searchResults.tasks,
-            totalFound: searchResults.tasks.length,
-            lastPage: searchResults.lastPage
-        });
-
-    } catch (error) {
+            res.json({
+                success: true,
+                query: query,
+                searchParams: searchParams,
+                results: searchResults.tasks,
+                totalFound: searchResults.tasks.length,
+                lastPage: searchResults.lastPage,
+                searchNote: searchResults.searchNote,
+                apiLimitation: "Note: ClickUp API does not support filtering by assignment date. For queries involving 'assigned yesterday', we filter by update date as an approximation."
+            });    } catch (error) {
         console.error('Error searching tickets:', error);
 
         // Check if it's an LLM service error
@@ -186,7 +203,9 @@ app.post('/mcp', async (req, res) => {
                 searchParams: searchParams,
                 results: searchResults.tasks,
                 totalFound: searchResults.tasks.length,
-                lastPage: searchResults.lastPage
+                lastPage: searchResults.lastPage,
+                searchNote: searchResults.searchNote,
+                apiLimitation: "Note: ClickUp API does not support filtering by assignment date. For queries involving 'assigned yesterday', we filter by update date as an approximation."
             });
 
         } else if (intent.action === 'create') {

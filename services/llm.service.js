@@ -375,6 +375,13 @@ Analyze the description carefully and create a professional engineering ticket. 
     }
 
     buildSearchPrompt(searchQuery) {
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const yesterdayStart = todayStart - (24 * 60 * 60 * 1000);
+        const yesterdayEnd = todayStart - 1;
+        const weekAgo = now.getTime() - (7 * 24 * 60 * 60 * 1000);
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+        
         return `
 You are an expert at converting natural language search queries into structured search parameters for ClickUp tasks.
 
@@ -389,12 +396,12 @@ Convert this into a JSON object with the following structure:
     "assignees": ["username1", "username2"] or [],
     "statuses": ["status1", "status2"] or [],
     "tags": ["tag1", "tag2"] or [],
-    "dateCreatedGt": "timestamp" or null,
-    "dateCreatedLt": "timestamp" or null,
-    "dateUpdatedGt": "timestamp" or null,
-    "dateUpdatedLt": "timestamp" or null,
-    "dueDateGt": "timestamp" or null,
-    "dueDateLt": "timestamp" or null,
+    "dateCreatedGt": timestamp_number or null,
+    "dateCreatedLt": timestamp_number or null,
+    "dateUpdatedGt": timestamp_number or null,
+    "dateUpdatedLt": timestamp_number or null,
+    "dueDateGt": timestamp_number or null,
+    "dueDateLt": timestamp_number or null,
     "priority": "urgent|high|normal|low" or null,
     "orderBy": "created|updated|due_date|priority",
     "reverse": true|false,
@@ -406,12 +413,18 @@ EXTRACTION RULES:
 2. **Assignees**: Look for "assigned to X", "by X", "for X" - extract usernames/names
 3. **Statuses**: Look for status keywords like "open", "in progress", "done", "closed", "todo", "complete"
 4. **Tags**: Look for "tagged with", "tag:", "label:" followed by tag names
-5. **Dates**: Convert relative dates like "last week", "yesterday", "this month" to timestamps
-   - Use Unix timestamps (milliseconds since epoch)
-   - "last week" = 7 days ago to now
-   - "yesterday" = yesterday 00:00 to 23:59
-   - "this month" = first day of current month to now
-   - "last month" = first day to last day of previous month
+5. **Dates**: Convert relative dates to Unix timestamps (milliseconds since epoch):
+   - TODAY: Use ${todayStart} to ${now.getTime()}
+   - YESTERDAY: Use ${yesterdayStart} to ${yesterdayEnd}
+   - LAST WEEK: Use ${weekAgo} to ${now.getTime()}
+   - THIS MONTH: Use ${monthStart} to ${now.getTime()}
+   
+   IMPORTANT DATE FILTERING NOTES:
+   - ClickUp API does NOT support filtering by "assignment date" - only creation, update, and due dates
+   - For queries like "assigned to X yesterday", use dateUpdatedGt/Lt to approximate when task was last modified
+   - For "created yesterday", use dateCreatedGt/Lt
+   - Be aware this is a limitation of the ClickUp API
+   
 6. **Priority**: Look for "urgent", "high priority", "low priority", etc.
 7. **Ordering**: Detect ordering preferences from keywords:
    - "newest", "latest", "recent" -> orderBy: "created", reverse: true
@@ -430,7 +443,8 @@ EXAMPLES:
 - "bugs assigned to john" results in {"query": "bugs", "assignees": ["john"], "limit": null}
 - "10 newest tickets" results in {"query": "tickets", "orderBy": "created", "reverse": true, "limit": 10}
 - "first 5 high priority tasks" results in {"query": "tasks", "priority": "high", "orderBy": "created", "reverse": false, "limit": 5}
-- "last 3 tickets created today" results in {"query": "tickets", "dateCreatedGt": today_timestamp, "orderBy": "created", "reverse": true, "limit": 3}
+- "tickets assigned to Renate yesterday" results in {"query": "tickets", "assignees": ["Renate"], "dateUpdatedGt": ${yesterdayStart}, "dateUpdatedLt": ${yesterdayEnd}, "orderBy": "updated", "reverse": true}
+- "tasks created yesterday" results in {"query": "tasks", "dateCreatedGt": ${yesterdayStart}, "dateCreatedLt": ${yesterdayEnd}, "orderBy": "created", "reverse": true}
 - "top 20 bugs by priority" results in {"query": "bugs", "orderBy": "priority", "reverse": true, "limit": 20}
 
 CRITICAL: Return ONLY the raw JSON object - no markdown, no code blocks, no explanations.`;
