@@ -1,13 +1,14 @@
 {
   "name": "clickup-mcp-server",
   "version": "1.0.0",
-  "description": "Affordable ClickUp MCP server with web GUI for creating tickets from descriptions",
+  "description": "ClickUp MCP server with AI-powered ticket creation and natural language search functionality",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "setup": "node setup.js",
-    "test": "node test-api.js"
+    "test": "node test-api.js",
+    "test:mcp": "node test-mcp.js"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -19,7 +20,7 @@
   "devDependencies": {
     "nodemon": "^3.0.1"
   },
-  "keywords": ["clickup", "mcp", "server", "tickets", "automation"],
+  "keywords": ["clickup", "mcp", "server", "tickets", "automation", "search", "ai", "nlp"],
   "author": "Your Name",
   "license": "MIT"
 }
