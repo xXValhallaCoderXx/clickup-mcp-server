@@ -25,44 +25,6 @@ app.get('/', (req, res) => {
 });
 
 // API Routes
-app.post('/api/create-ticket', async (req, res) => {
-    try {
-        const { description, priority = 'normal', assignee = null } = req.body;
-
-        if (!description) {
-            return res.status(400).json({ error: 'Description is required' });
-        }
-
-        console.log('Processing ticket creation request:', { description, priority, assignee });
-
-        // Process the ticket using LLM and create in ClickUp
-        const processedTicket = await llmService.processDescription(description);
-        const ticketData = templateService.applyTemplate(processedTicket, { priority, assignee });
-        const createdTicket = await clickupService.createTask(ticketData);
-
-        res.json({
-            success: true,
-            ticket: createdTicket,
-            processed: processedTicket
-        });
-
-    } catch (error) {
-        console.error('Error creating ticket:', error);
-
-        // Check if it's an LLM service error
-        if (error.message.startsWith('LLM service unavailable:')) {
-            return res.status(503).json({
-                error: 'LLM service unavailable',
-                details: error.message
-            });
-        }
-
-        res.status(500).json({
-            error: 'Failed to create ticket',
-            details: error.message
-        });
-    }
-});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -86,73 +48,7 @@ app.get('/api/capabilities', (req, res) => {
     });
 });
 
-
 // Search tickets with natural language
-app.post('/api/search-tickets', async (req, res) => {
-    try {
-        const { query, teamId } = req.body;
-
-        if (!query) {
-            return res.status(400).json({ error: 'Search query is required' });
-        }
-
-        console.log('Processing search request:', { query, teamId });
-
-        // Process the natural language query using LLM
-        const searchParams = await llmService.processSearchQuery(query);
-
-        // Use the provided teamId or fall back to environment variable
-        const searchTeamId = teamId || process.env.CLICKUP_TEAM_ID;
-
-        if (!searchTeamId) {
-            return res.status(400).json({
-                error: 'Team ID is required for searching. Please provide teamId or set CLICKUP_TEAM_ID in your environment.'
-            });
-        }
-
-        // Search tasks using the processed parameters
-        const searchResults = await clickupService.searchTasks(searchParams.query, {
-            teamId: searchTeamId,
-            assignees: searchParams.assignees,
-            statuses: searchParams.statuses,
-            tags: searchParams.tags,
-            dateCreatedGt: searchParams.dateCreatedGt,
-            dateCreatedLt: searchParams.dateCreatedLt,
-            dateUpdatedGt: searchParams.dateUpdatedGt,
-            dateUpdatedLt: searchParams.dateUpdatedLt,
-            dueDateGt: searchParams.dueDateGt,
-            dueDateLt: searchParams.dueDateLt,
-            orderBy: searchParams.orderBy,
-            reverse: searchParams.reverse,
-            limit: searchParams.limit
-        });
-
-            res.json({
-                success: true,
-                query: query,
-                searchParams: searchParams,
-                results: searchResults.tasks,
-                totalFound: searchResults.tasks.length,
-                lastPage: searchResults.lastPage,
-                searchNote: searchResults.searchNote,
-                apiLimitation: "Note: ClickUp API does not support filtering by assignment date. For queries involving 'assigned yesterday', we filter by update date as an approximation."
-            });    } catch (error) {
-        console.error('Error searching tickets:', error);
-
-        // Check if it's an LLM service error
-        if (error.message.startsWith('LLM service unavailable:')) {
-            return res.status(503).json({
-                error: 'LLM service unavailable',
-                details: error.message
-            });
-        }
-
-        res.status(500).json({
-            error: 'Failed to search tickets',
-            details: error.message
-        });
-    }
-});
 
 
 app.post('/mcp', async (req, res) => {
@@ -249,13 +145,7 @@ app.post('/mcp', async (req, res) => {
     }
 });
 
-// MCP interface route
-app.get('/mcp', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'mcp.html'));
-});
-
 app.listen(PORT, () => {
     console.log(`🚀 ClickUp MCP Server running on http://localhost:${PORT}`);
     console.log(`📝 Open the web interface to start creating tickets`);
-    console.log(`🤖 Use the MCP interface at http://localhost:${PORT}/mcp`);
 });

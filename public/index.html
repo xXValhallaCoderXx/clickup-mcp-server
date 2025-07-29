@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClickUp Ticket Creator</title>
+    <title>ClickUp MCP Interface</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,152 +12,66 @@
     <div class="container">
         <header class="header">
             <div class="header-content">
-                <h1><i class="fas fa-ticket-alt"></i> ClickUp Ticket Creator</h1>
-                <p>Transform natural language into structured tickets with AI</p>
-            </div>
-            <div class="status-indicator">
-                <span id="status-dot" class="status-dot"></span>
-                <span id="status-text">Checking connection...</span>
+                <h1><i class="fas fa-robot"></i>ClickUp MCP</h1>
+                <p>Unified interface for ticket creation and search using natural language</p>
             </div>
         </header>
 
         <main class="main-content">
-            <!-- Tab Navigation -->
-            <div class="tab-navigation">
-                <button class="tab-btn active" data-tab="create">
-                    <i class="fas fa-plus"></i> Create Ticket
-                </button>
-                <button class="tab-btn" data-tab="search">
-                    <i class="fas fa-search"></i> Search Tickets
-                </button>
-            </div>
+            <div class="form-section">
+                <form id="mcp-form">
+            <div class="form-group">
+                <label for="prompt">
+                    <i class="fas fa-comment-dots"></i> Natural Language Prompt
+                </label>
+                    <textarea 
+                        id="prompt" 
+                        name="prompt" 
+                        style="height: 225px;"
+                        class="form-group textarea"
+                        placeholder="Tell me what you want to do in natural language:
 
-            <!-- Create Ticket Tab -->
-            <div class="tab-content active" id="create-tab">
-                <div class="form-section">
-                    <form id="ticket-form">
-                    <div class="form-group">
-                        <label for="description">
-                            <i class="fas fa-edit"></i> Issue Description
-                        </label>
-                        <textarea 
-                            id="description" 
-                            name="description" 
-                            placeholder="Describe your issue in detail. For example:&#10;&#10;- What is the problem?&#10;- What were you trying to do?&#10;- What did you expect to happen?&#10;- What actually happened?&#10;- Any error messages?&#10;- Steps to reproduce?"
-                            rows="8"
-                            required
-                        ></textarea>
-                        <div class="char-counter">
-                            <span id="char-count">0</span> characters
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="priority">
-                                <i class="fas fa-exclamation-triangle"></i> Priority
-                            </label>
-                            <select id="priority" name="priority">
-                                <option value="low">Low</option>
-                                <option value="normal" selected>Normal</option>
-                                <option value="high">High</option>
-                                <option value="urgent">Urgent</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="assignee">
-                                <i class="fas fa-user"></i> Assignee (Optional)
-                            </label>
-                            <input 
-                                type="text" 
-                                id="assignee" 
-                                name="assignee" 
-                                placeholder="Enter user ID or email"
-                            >
-                        </div>
-                    </div>
-
-
-                    <div class="form-actions">
-                        <button type="submit" id="create-btn" class="btn btn-primary">
-                            <i class="fas fa-plus"></i>
-                            <span>Create Ticket</span>
-                            <div class="spinner" id="spinner"></div>
-                        </button>
-                        <button type="button" id="clear-btn" class="btn btn-secondary">
-                            <i class="fas fa-eraser"></i> Clear
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <div class="preview-section" id="preview-section" style="display: none;">
-                <h3><i class="fas fa-eye"></i> Ticket Preview</h3>
-                <div class="preview-content" id="preview-content">
-                    <!-- Preview will be populated here -->
+Examples:
+• 'Find bugs assigned to john from last week'
+• 'Show me high priority tasks'
+• 'Create a ticket for the login button not working'
+• 'The save feature is broken on mobile devices'
+• 'Search for frontend tickets tagged urgent'"
+                        required
+                    ></textarea>
+                <div class="form-help">
+                    The AI will automatically determine if you want to search for tickets or create a new one.
                 </div>
+            </div>
+
+            <div class="form-group">
+                <label for="team-id">
+                    <i class="fas fa-users"></i> Team ID (Optional)
+                </label>
+                <input 
+                    type="text" 
+                    id="team-id" 
+                    name="teamId" 
+                    placeholder="Leave empty to use default team"
+                >
+                <div class="form-help">
+                    Only required for search operations. Will use CLICKUP_TEAM_ID from environment if not provided.
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" id="submit-btn" class="btn btn-primary">
+                    <i class="fas fa-magic"></i>
+                    <span>Process Request</span>
+                    <div class="spinner" id="spinner"></div>
+                </button>
+            </div>
+        </form>
             </div>
 
             <div class="result-section" id="result-section" style="display: none;">
                 <div class="result-content" id="result-content">
                     <!-- Results will be populated here -->
-                </div>
-            </div>
-            </div>
-
-            <!-- Search Tickets Tab -->
-            <div class="tab-content" id="search-tab">
-                <div class="search-section">
-                    <form id="search-form">
-                        <div class="form-group">
-                            <label for="search-query">
-                                <i class="fas fa-search"></i> Search Query
-                            </label>
-                            <input 
-                                type="text" 
-                                id="search-query" 
-                                name="searchQuery" 
-                                placeholder="Search for tickets using natural language. For example: 'bugs assigned to john', 'high priority tasks created last week', 'completed tickets tagged frontend'"
-                                required
-                            >
-                            <div class="form-help">
-                                Use natural language to search for tickets. You can search by assignee, status, priority, tags, and date ranges.
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="team-id">
-                                <i class="fas fa-users"></i> Team ID (Optional)
-                            </label>
-                            <input 
-                                type="text" 
-                                id="team-id" 
-                                name="teamId" 
-                                placeholder="Leave empty to use default team"
-                            >
-                            <div class="form-help">
-                                If not provided, will use the CLICKUP_TEAM_ID from your environment.
-                            </div>
-                        </div>
-
-                        <div class="form-actions">
-                            <button type="submit" id="search-btn" class="btn btn-primary">
-                                <i class="fas fa-search"></i>
-                                <span>Search Tickets</span>
-                                <div class="spinner" id="search-spinner"></div>
-                            </button>
-                            <button type="button" id="clear-search-btn" class="btn btn-secondary">
-                                <i class="fas fa-eraser"></i> Clear
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="search-results-section" id="search-results-section" style="display: none;">
-                    <div class="search-results-content" id="search-results-content">
-                        <!-- Search results will be populated here -->
-                    </div>
                 </div>
             </div>
         </main>
@@ -166,85 +80,271 @@
             <div class="footer-content">
                 <p>
                     <i class="fas fa-info-circle"></i>
-                    This tool uses AI to process your description and create structured ClickUp tickets.
+                    Unified AI-powered interface for ClickUp ticket operations.
                 </p>
                 <div class="footer-links">
-                    <a href="/mcp" class="link-btn">
-                        <i class="fas fa-robot"></i> MCP Interface
+                    <a href="/" class="link-btn">
+                        <i class="fas fa-arrow-left"></i> Back to Full Interface
                     </a>
-                    <button id="show-help" class="link-btn">
-                        <i class="fas fa-question-circle"></i> Help
-                    </button>
                 </div>
             </div>
         </footer>
     </div>
 
-
-    <!-- Help Modal -->
-    <div id="help-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2><i class="fas fa-question-circle"></i> How to Use</h2>
-                <button class="close-btn" id="close-help">&times;</button>
-            </div>
-            <div class="modal-body">
-                <h3>Creating Tickets</h3>
-                <ol>
-                    <li>Switch to the "Create Ticket" tab</li>
-                    <li>Describe your issue in the text area</li>
-                    <li>Select the appropriate priority level</li>
-                    <li>Optionally assign the ticket to someone</li>
-                    <li>Click "Create Ticket" to generate the ticket</li>
-                </ol>
-
-                <h3>Searching Tickets</h3>
-                <ol>
-                    <li>Switch to the "Search Tickets" tab</li>
-                    <li>Enter a natural language search query</li>
-                    <li>Optionally specify a team ID</li>
-                    <li>Click "Search Tickets" to find matching tickets</li>
-                </ol>
-
-                <h3>Writing Good Descriptions</h3>
-                <ul>
-                    <li><strong>Be specific:</strong> Include what you were doing when the issue occurred</li>
-                    <li><strong>Include steps:</strong> List the steps to reproduce the problem</li>
-                    <li><strong>Expected vs Actual:</strong> Describe what you expected vs what happened</li>
-                    <li><strong>Environment:</strong> Mention browser, OS, or relevant system info</li>
-                    <li><strong>Error messages:</strong> Include any error messages you saw</li>
-                </ul>
-
-                <h3>Search Examples</h3>
-                <div class="example">
-                    <strong>Find bugs assigned to user:</strong><br>
-                    "bugs assigned to john"
-                </div>
+    <script>
+        class MCPInterface {
+            constructor() {
+                this.form = document.getElementById('mcp-form');
+                this.submitBtn = document.getElementById('submit-btn');
+                this.spinner = document.getElementById('spinner');
+                this.resultSection = document.getElementById('result-section');
+                this.resultContent = document.getElementById('result-content');
                 
-                <div class="example">
-                    <strong>Find high priority tasks:</strong><br>
-                    "high priority tasks created last week"
-                </div>
+                this.initializeEventListeners();
+            }
 
-                <div class="example">
-                    <strong>Find completed tickets:</strong><br>
-                    "completed tickets tagged frontend"
-                </div>
+            initializeEventListeners() {
+                this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+            }
 
-                <h3>Ticket Creation Examples</h3>
-                <div class="example">
-                    <strong>Bug Report:</strong><br>
-                    "When I click the 'Save' button on the user profile page, I get a 500 error. Expected: Profile should save successfully. Browser: Chrome 120, Windows 11."
-                </div>
+            async handleSubmit(e) {
+                e.preventDefault();
                 
-                <div class="example">
-                    <strong>Feature Request:</strong><br>
-                    "Add a dark mode toggle to the navigation bar. Users should be able to switch between light and dark themes and have their preference saved."
-                </div>
-            </div>
-        </div>
-    </div>
+                const formData = new FormData(this.form);
+                const data = {
+                    prompt: formData.get('prompt').trim(),
+                    teamId: formData.get('teamId').trim() || null
+                };
 
-    <script src="script.js"></script>
+                if (!data.prompt) {
+                    this.showError('Please provide a prompt.');
+                    return;
+                }
+
+                this.setLoading(true);
+                this.hideResults();
+
+                try {
+                    const response = await fetch('/mcp', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        this.showResults(result);
+                    } else {
+                        this.showError(result.error || 'Failed to process request');
+                    }
+                } catch (error) {
+                    console.error('Error processing request:', error);
+                    this.showError('Network error. Please check your connection and try again.');
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            setLoading(loading) {
+                this.submitBtn.disabled = loading;
+                
+                if (loading) {
+                    this.submitBtn.classList.add('loading');
+                    this.submitBtn.querySelector('span').textContent = 'Processing...';
+                    this.spinner.style.display = 'block';
+                } else {
+                    this.submitBtn.classList.remove('loading');
+                    this.submitBtn.querySelector('span').textContent = 'Process Request';
+                    this.spinner.style.display = 'none';
+                }
+            }
+
+            showResults(result) {
+                let html = `
+                    <h3><i class="fas fa-${result.action === 'search' ? 'search' : 'plus'}"></i> ${result.action === 'search' ? 'Search Results' : 'Ticket Created'}</h3>
+                    <div class="result-content">
+                `;
+
+                if (result.action === 'search') {
+                    html += this.formatSearchResults(result);
+                } else if (result.action === 'create') {
+                    html += this.formatCreateResults(result);
+                }
+
+                html += '</div>';
+
+                this.resultContent.innerHTML = html;
+                this.resultSection.style.display = 'block';
+                this.resultSection.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            formatSearchResults(result) {
+                const { results, totalFound, searchParams, limitApplied } = result;
+                
+                let html = `
+                    <div class="success-message">
+                        <strong>Found ${totalFound} ticket${totalFound !== 1 ? 's' : ''}</strong> matching your query.
+                        ${limitApplied ? `<br><small style="color: #64748b;">Showing top ${limitApplied} results as requested.</small>` : ''}
+                    </div>
+                `;
+
+                if (results && results.length > 0) {
+                    html += '<div class="search-results">';
+                    
+                    results.forEach(task => {
+                        const createdDate = new Date(parseInt(task.date_created)).toLocaleDateString();
+                        const assigneeNames = task.assignees && task.assignees.length > 0 
+                            ? task.assignees.map(a => a.username || `${a.firstname} ${a.lastname}`.trim() || a.email).join(', ')
+                            : 'Unassigned';
+                        
+                        html += `
+                            <div class="search-result-item">
+                                <div class="search-result-header">
+                                    <h4 class="search-result-title">
+                                        ${task.url ? `<a href="${task.url}" target="_blank">${task.name}</a>` : task.name}
+                                    </h4>
+                                    <div class="search-result-meta">
+                                        <span class="meta-item" style="background: #f1f5f9; color: #475569;">
+                                            ${task.status?.status || 'Unknown'}
+                                        </span>
+                                        ${task.priority ? `<span class="meta-item priority-${this.mapPriorityClass(task.priority.priority)}">
+                                            Priority ${this.mapPriorityName(task.priority.priority)}
+                                        </span>` : ''}
+                                    </div>
+                                </div>
+                                <div class="search-result-footer">
+                                    <span class="search-result-assignee">
+                                        <i class="fas fa-user" style="margin-right: 4px;"></i>${assigneeNames}
+                                    </span>
+                                    <span class="search-result-dates">
+                                        Created ${createdDate}
+                                    </span>
+                                </div>
+                                ${task.description ? `<div class="search-result-description">
+                                    ${this.truncateText(task.description, 150)}
+                                </div>` : ''}
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                } else {
+                    html += `
+                        <div class="search-no-results">
+                            <i class="fas fa-search"></i>
+                            <p>No tickets found matching your criteria.</p>
+                        </div>
+                    `;
+                }
+
+                return html;
+            }
+
+            formatCreateResults(result) {
+                const { ticket, processed } = result;
+                
+                let html = `
+                    <div class="success-message">
+                        <strong>Ticket created successfully!</strong> 
+                        ${ticket.url ? `<a href="${ticket.url}" target="_blank" class="ticket-link">View in ClickUp <i class="fas fa-external-link-alt"></i></a>` : ''}
+                    </div>
+                    
+                    <div class="ticket-preview">
+                        <h4 class="ticket-title">${processed.title || 'Untitled Ticket'}</h4>
+                        
+                        <div class="ticket-meta">
+                            <span class="meta-item" style="background: #f0f9ff; color: #0284c7;">
+                                ${(processed.type || 'task').toUpperCase()}
+                            </span>
+                            <span class="meta-item priority-${this.mapPriorityClass(processed.priority)}">
+                                ${(processed.priority || 'normal').toUpperCase()} PRIORITY
+                            </span>
+                            ${processed.estimatedComplexity ? `<span class="meta-item" style="background: #f3e8ff; color: #7c3aed;">
+                                ${processed.estimatedComplexity.toUpperCase()} COMPLEXITY
+                            </span>` : ''}
+                        </div>
+
+                        ${processed.summary ? `
+                            <div style="margin-bottom: 16px;">
+                                <strong>Summary:</strong> ${processed.summary}
+                            </div>
+                        ` : ''}
+
+                        ${processed.acceptanceCriteria && processed.acceptanceCriteria.length > 0 ? `
+                            <div style="margin-bottom: 16px;">
+                                <strong>Acceptance Criteria:</strong>
+                                <ul style="margin-top: 8px; padding-left: 20px;">
+                                    ${processed.acceptanceCriteria.map(criteria => `<li>${criteria}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+
+                        ${processed.tags && processed.tags.length > 0 ? `
+                            <div class="search-result-tags" style="margin-top: 16px;">
+                                ${processed.tags.map(tag => `<span class="search-result-tag">#${tag}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+
+                return html;
+            }
+
+            showError(message) {
+                const html = `
+                    <h3><i class="fas fa-exclamation-triangle"></i> Error</h3>
+                    <div class="error-message">
+                        <strong>Error:</strong> ${message}
+                    </div>
+                `;
+                
+                this.resultContent.innerHTML = html;
+                this.resultSection.style.display = 'block';
+                this.resultSection.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            hideResults() {
+                this.resultSection.style.display = 'none';
+            }
+
+            mapPriorityName(priority) {
+                const priorityMap = {
+                    '1': 'Urgent',
+                    '2': 'High', 
+                    '3': 'Normal',
+                    '4': 'Low'
+                };
+                return priorityMap[priority] || 'Normal';
+            }
+
+            mapPriorityClass(priority) {
+                const priorityMap = {
+                    'urgent': 'urgent',
+                    'high': 'high',
+                    'normal': 'normal',
+                    'low': 'low',
+                    '1': 'urgent',
+                    '2': 'high', 
+                    '3': 'normal',
+                    '4': 'low'
+                };
+                return priorityMap[priority] || 'normal';
+            }
+
+            truncateText(text, maxLength) {
+                if (!text) return '';
+                if (text.length <= maxLength) return text;
+                return text.substring(0, maxLength) + '...';
+            }
+        }
+
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new MCPInterface();
+        });
+    </script>
 </body>
 </html>
